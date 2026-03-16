@@ -1,0 +1,141 @@
+/* --- STYLE DESKTOP --- */
+.navbar-container {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.navbar-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 0 24px;
+  height: 70px;
+  width: 90%;
+  max-width: 1200px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+.nav-left-group {
+  display: flex;
+  align-items: center;
+  gap: 38px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 16px;
+}
+
+/* Style des liens (About, Contact, Log In) */
+.nav-links a,
+.login-link {
+  text-decoration: none;
+  color: #b3b3b3;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.nav-links a:hover,
+.login-link:hover {
+  color: #ffffff; /* Devient blanc au hover */
+}
+
+.nav-right-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Bouton Join Now */
+.join-btn {
+  text-decoration: none;
+  background-color: #8a2be2;
+  color: #ffffff;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition:
+    background 0.3s ease,
+    transform 0.2s;
+}
+
+.join-btn:hover {
+  background-color: #a855f7;
+  transform: translateY(-1px);
+}
+
+/* --- BURGER MOBILE--- */
+.burger-menu {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  background-color: #8a2be2;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.bar {
+  width: 20px;
+  height: 2px;
+  background-color: white;
+}
+
+/* --- MENU DÉROULANT --- */
+.mobile-menu {
+  position: absolute;
+  top: 80px; /* Juste en dessous de la navbar */
+  right: 0;
+  width: 220px;
+  background: #0a0b1e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.mobile-menu a {
+  color: white;
+  text-decoration: none;
+  font-size: 1rem;
+  padding: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* --- MEDIA QUERIES--- */
+@media (max-width: 768px) {
+  /* On cache les groupes desktop */
+  .nav-left-group .nav-links,
+  .nav-right-group .login-link,
+  .nav-right-group .join-btn {
+    display: none;
+  }
+
+  /* On affiche le burger */
+  .burger-menu {
+    display: flex;
+  }
+
+  /* On ajuste la largeur de la navbar sur petit écran */
+  .navbar-content {
+    width: 95%;
+    height: 60px;
+  }
+}

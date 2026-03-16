@@ -1,0 +1,327 @@
+.hero-container {
+  display: flex;
+  justify-content: center;
+  padding: 80px 0;
+  text-align: center;
+}
+
+.hero-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 1200px;
+}
+
+/* Titre principal 72px */
+.hero-title {
+  font-size: 72px;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.1;
+  margin-bottom: 24px;
+}
+
+/* "Web" en violet, mais pas en gras (medium/normal) */
+.text-purple {
+  color: #a855f7;
+  font-weight: 500;
+}
+
+.underline-purple {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 8px; /* Padding entre le mot et le soulignage */
+}
+
+/* Soulignement violet descendu */
+.underline-purple::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -4px; /* Descendu pour laisser de l'espace au mot */
+  width: 100%;
+  height: 4px;
+  background-color: #a855f7;
+}
+
+/* Paragraphe 18px */
+.hero-description {
+  font-size: 18px;
+  color: #b3b3b3;
+  max-width: 800px;
+  line-height: 1.6;
+  margin-bottom: 40px;
+}
+
+/* Ligne des boutons */
+.hero-btns-row {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  margin-bottom: 60px;
+}
+
+.btn-filled-purple {
+  background-color: #8a2be2;
+  color: #ffffff;
+  border: none;
+  padding: 16px 32px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.btn-outline-white {
+  background-color: transparent;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  padding: 16px 32px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.btn-filled-purple:hover {
+  background-color: #a855f7;
+}
+.btn-outline-white:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* L'image 1100x700 centré */
+.hero-image-wrapper {
+  width: 1100px;
+  height: 700px;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 20px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.hero-main-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* --- RESPONSIVE --- */
+
+@media (max-width: 1150px) {
+  .hero-title {
+    font-size: 48px;
+  }
+  .hero-image-wrapper {
+    width: 90%;
+    height: auto;
+    max-height: 500px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 36px;
+    padding: 0 20px;
+  }
+
+  .underline-purple::after {
+    bottom: -2px; /* Ajustement mobile pour le trait */
+  }
+
+  .hero-description {
+    font-size: 16px;
+    padding: 0 30px; /* Évite que le texte touche les bords */
+  }
+
+  .hero-btns-row {
+    flex-direction: column;
+    width: 100%;
+    padding: 0 30px; /* Padding sur le container des boutons pour les décoller du bord */
+    gap: 12px;
+  }
+
+  .btn-filled-purple,
+  .btn-outline-white {
+    width: 100%; /* Les boutons prennent la largeur dispo moins le padding parent */
+    padding: 14px 20px;
+  }
+}
+
+.partners-section {
+  padding: 100px 0;
+  background-color: #050614; /* Assure la continuité du fond */
+  text-align: center;
+}
+
+.partners-title {
+  font-size: 48px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 60px;
+}
+
+.logos-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 60px; /* Espace entre les logos */
+  flex-wrap: wrap; /* Important pour le mobile */
+  margin-bottom: 50px;
+}
+
+.partner-logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #b3b3b3; /* Gris clair */
+  letter-spacing: -0.5px;
+  opacity: 0.8;
+  transition:
+    opacity 0.3s ease,
+    color 0.3s ease;
+}
+
+.partner-logo:hover {
+  opacity: 1;
+  color: #ffffff; /* S'éclaire au survol */
+}
+
+.partners-footer-text {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.partners-footer-text p {
+  font-size: 16px;
+  color: #666; /* Plus sombre pour le texte secondaire */
+  line-height: 1.5;
+  margin: 5px 0;
+}
+
+/* --- RESPONSIVE PARTNERS --- */
+
+@media (max-width: 768px) {
+  .partners-title {
+    font-size: 32px;
+    padding: 0 20px;
+  }
+
+  .logos-row {
+    gap: 30px; /* On réduit l'espace sur mobile */
+    padding: 0 20px;
+  }
+
+  .partner-logo {
+    font-size: 1.2rem;
+  }
+}
+
+.feature-section {
+  padding: 100px 0;
+  background-color: #050614;
+}
+
+.flex-content {
+  display: flex;
+  align-items: center;
+  gap: 60px;
+  text-align: left; /* Alignement à gauche pour cette section */
+}
+
+/* Bloc Texte */
+.feature-text-block {
+  flex: 1; /* Prend 50% de l'espace */
+}
+
+.feature-caption {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #ffffff;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+}
+
+.feature-main-title {
+  font-size: 72px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #ffffff;
+  margin-bottom: 24px;
+}
+
+.feature-description {
+  font-size: 18px;
+  color: #b3b3b3;
+  line-height: 1.6;
+  margin-bottom: 32px;
+}
+
+/* Bouton Explorer avec flèche */
+.explorer-btn {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  transition: color 0.3s ease;
+}
+
+.explorer-btn:hover {
+  color: #a855f7;
+}
+
+.explorer-btn .arrow {
+  font-size: 24px;
+  transition: transform 0.3s ease;
+}
+
+.explorer-btn:hover .arrow {
+  transform: translateX(8px); /* Petit effet d'animation sur la flèche */
+}
+
+/* Bloc Image */
+.feature-image-block {
+  flex: 1; /* "Fill" : prend tout l'espace restant */
+  height: 480px;
+}
+
+.feature-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Remplit la hauteur de 480px sans déformer */
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* --- RESPONSIVE FEATURES --- */
+
+@media (max-width: 1024px) {
+  .flex-content {
+    flex-direction: column; /* Empilement sur tablette/mobile */
+    text-align: center;
+  }
+
+  .feature-main-title {
+    font-size: 48px;
+  }
+
+  .feature-image-block {
+    width: 100%;
+    height: 350px;
+  }
+
+  .explorer-btn {
+    justify-content: center;
+    margin: 0 auto;
+  }
+}
