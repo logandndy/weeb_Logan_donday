@@ -11,3 +11,190 @@ body {
 * {
   box-sizing: border-box;
 }
+
+.contact-page,
+.login-page,
+.signup-page {
+  min-height: 100vh;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 5%;
+}
+
+.contact-header {
+  text-align: center;
+  max-width: 800px;
+  margin-bottom: 50px;
+}
+
+.contact-header h1 {
+  font-size: 3rem;
+  margin-bottom: 20px;
+}
+
+.contact-header p {
+  color: #9ca3af;
+  line-height: 1.6;
+}
+
+.contact-form-container,
+.login-container,
+.signup-container {
+  background-color: #c084fc1a;
+  border: 3px solid rgba(168, 85, 247, 0.3);
+  border-radius: 12px;
+  padding: 40px;
+  width: 100%;
+  max-width: 700px;
+}
+
+.login-container,
+.signup-container {
+  max-width: 450px;
+  text-align: center;
+}
+
+.login-container h1,
+.signup-container h1 {
+  font-size: 2.5rem;
+  margin-bottom: 40px;
+}
+
+.form-row {
+  display: flex;
+  gap: 30px;
+  margin-bottom: 15px;
+}
+
+.input-group {
+  position: relative;
+  flex: 1;
+  margin-bottom: 30px;
+  text-align: left;
+}
+
+.input-group.full-width {
+  width: 100%;
+}
+
+.input-group input,
+.input-group textarea {
+  width: 100%;
+  background: transparent;
+  border: 1px solid #4b5563;
+  border-radius: 8px;
+  color: #ffffff;
+  padding: 14px 15px;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.3s ease;
+  box-sizing: border-box;
+}
+
+.input-group textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.input-group label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #a855f7;
+  pointer-events: none;
+  transition: 0.3s ease all;
+}
+
+.input-group textarea ~ label {
+  top: 30px;
+}
+
+.input-group input:focus,
+.input-group textarea:focus {
+  border: 1px solid #a855f7;
+}
+
+.input-group input:focus ~ label,
+.input-group input:not(:placeholder-shown) ~ label,
+.input-group textarea:focus ~ label,
+.input-group textarea:not(:placeholder-shown) ~ label {
+  top: -22px;
+  left: 0;
+  transform: translate(0, 0);
+  font-size: 0.8rem;
+  color: #a855f7;
+}
+
+.btn-primary {
+  background-color: #a855f7;
+  color: #ffffff;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  display: block;
+  margin: 0 auto;
+}
+
+.btn-primary:hover {
+  background-color: #9333ea;
+}
+
+.login-btn,
+.signup-btn {
+  width: 100%;
+  padding: 15px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.login-links,
+.signup-links {
+  margin-top: 20px;
+}
+
+.forgot-password {
+  display: block;
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.create-account,
+.login-account {
+  color: #9ca3af;
+  line-height: 1.5;
+}
+
+.create-account a,
+.login-account a {
+  color: #ffffff;
+  font-weight: bold;
+  text-decoration: underline;
+  text-decoration-color: #a855f7;
+  text-underline-offset: 4px;
+}
+
+@media (max-width: 600px) {
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+  .contact-form-container,
+  .login-container,
+  .signup-container {
+    background-color: #c084fc1a;
+    padding: 30px 20px;
+  }
+  .contact-header h1 {
+    font-size: 2.2rem;
+  }
+}

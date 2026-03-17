@@ -9,10 +9,10 @@ const Navbar = () => {
     <nav className="navbar-container">
       <div className="navbar-content">
         <div className="nav-left-group">
-          <div className="logo">weeb</div>
+          <div className="logo"><a href="/" className="logo-link">weeb</a></div>
           <div className="nav-links desktop-only">
             <Link to="/">Home</Link>
-            <Link to="/about">About Us</Link>
+            <Link to="/blog">Blog</Link>
             <Link to="/contact">Contact</Link>
           </div>
         </div>

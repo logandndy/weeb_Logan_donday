@@ -1,4 +1,4 @@
-/* --- STYLE DESKTOP --- */
+/* STYLE DESKTOP */
 .navbar-container {
   display: flex;
   justify-content: center;
@@ -28,16 +28,24 @@
   align-items: center;
   gap: 38px;
 }
+.logo-link {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #ffffff;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
 
 .nav-links {
   display: flex;
   gap: 16px;
 }
 
-/* Style des liens (About, Contact, Log In) */
+/* Style des liens */
 .nav-links a,
 .login-link {
   text-decoration: none;
+  margin-right: 25px;
   color: #b3b3b3;
   font-size: 0.9rem;
   font-weight: 500;
@@ -74,7 +82,7 @@
   transform: translateY(-1px);
 }
 
-/* --- BURGER MOBILE--- */
+/* BURGER MOBILE */
 .burger-menu {
   display: none;
   flex-direction: column;
@@ -95,10 +103,10 @@
   background-color: white;
 }
 
-/* --- MENU DÉROULANT --- */
+/*  Menu déroulant */
 .mobile-menu {
   position: absolute;
-  top: 80px; /* Juste en dessous de la navbar */
+  top: 80px;
   right: 0;
   width: 220px;
   background: #0a0b1e;
@@ -119,7 +127,7 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* --- MEDIA QUERIES--- */
+/* RESPONSIVE */
 @media (max-width: 768px) {
   /* On cache les groupes desktop */
   .nav-left-group .nav-links,
@@ -133,7 +141,7 @@
     display: flex;
   }
 
-  /* On ajuste la largeur de la navbar sur petit écran */
+  /* On ajuste la largeur de la navbar */
   .navbar-content {
     width: 95%;
     height: 60px;
