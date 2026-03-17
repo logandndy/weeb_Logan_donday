@@ -18,7 +18,7 @@ const Hero = () => {
           <button className="btn-outline-white">S'abonner à la newsletter</button>
         </div>
         <div className="hero-image-wrapper">
-          <img src="/src/assets/hero.png" alt="Interface" className="hero-main-img" />
+          <img src="/src/assets/img-1.png" alt="Interface" className="hero-main-img" />
         </div>
       </div>
     </section>
