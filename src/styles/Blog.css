@@ -1,0 +1,49 @@
+.blog-page {
+  min-height: 80vh;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+}
+
+.coming-soon-container h1 {
+  font-size: 3.5rem;
+  margin-bottom: 15px;
+}
+
+.coming-soon-container .highlight {
+  color: #a855f7;
+}
+
+.coming-soon-container p {
+  font-size: 1.2rem;
+  color: #9ca3af;
+  margin-bottom: 30px;
+}
+
+.loader-bar {
+  width: 50px;
+  height: 4px;
+  background-color: #a855f7;
+  margin: 0 auto;
+  border-radius: 2px;
+  animation: pulseWidth 2s infinite ease-in-out;
+}
+
+@keyframes pulseWidth {
+  0% {
+    width: 30px;
+    opacity: 0.5;
+  }
+  50% {
+    width: 100px;
+    opacity: 1;
+  }
+  100% {
+    width: 30px;
+    opacity: 0.5;
+  }
+}
