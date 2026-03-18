@@ -1,10 +1,31 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import '../../styles/Home.css';
 import dashboardImg from '../../assets/img-1.png'; 
 
 const Features = () => {
+  const sectionRef = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          entries[0].target.classList.add('is-visible');
+        }
+      },
+      { threshold: 0.2 }
+    );
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current);
+    }
+
+    return () => {
+      if (sectionRef.current) observer.unobserve(sectionRef.current);
+    };
+  }, []);
+
   return (
-    <section className="features-section">
+    <section className="features-section" ref={sectionRef}>
       <div className="features-container">
         <div className="features-text">
           <p className="eyebrow">DES RESSOURCES POUR TOUS LES NIVEAUX</p>

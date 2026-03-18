@@ -23,6 +23,8 @@ html {
   color: #ffffff;
   line-height: 1.1;
   margin-bottom: 24px;
+  opacity: 0;
+  animation: slideUp 1.2s ease-out forwards;
 }
 
 .text-purple {
@@ -52,6 +54,8 @@ html {
   max-width: 800px;
   line-height: 1.6;
   margin-bottom: 40px;
+  opacity: 0;
+  animation: slideUp 1.2s ease-out 0.2s forwards;
 }
 
 .hero-btns-row {
@@ -59,6 +63,8 @@ html {
   flex-direction: row;
   gap: 16px;
   margin-bottom: 60px;
+  opacity: 0;
+  animation: slideUp 1.2s ease-out 0.4s forwards;
 }
 
 .btn-filled-purple {
@@ -84,7 +90,7 @@ html {
   font-weight: 600;
   cursor: pointer;
   transition: 0.3s;
-  text-decoration: none; /* Enlève le soulignement natif des liens */
+  text-decoration: none;
   display: inline-block;
   text-align: center;
 }
@@ -105,6 +111,8 @@ html {
   overflow: hidden;
   border-radius: 20px;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  animation: fadeIn 1.4s ease-out 0.6s forwards;
 }
 
 .hero-main-img {
@@ -113,7 +121,6 @@ html {
   object-fit: cover;
 }
 
-/* RESPONSIVE */
 @media (max-width: 1150px) {
   .hero-title {
     font-size: 48px;
@@ -130,23 +137,19 @@ html {
     font-size: 36px;
     padding: 0 20px;
   }
-
   .underline-purple::after {
     bottom: -2px;
   }
-
   .hero-description {
     font-size: 16px;
     padding: 0 30px;
   }
-
   .hero-btns-row {
     flex-direction: column;
     width: 100%;
     padding: 0 30px;
     gap: 12px;
   }
-
   .btn-filled-purple,
   .btn-outline-white {
     width: 100%;
@@ -155,7 +158,6 @@ html {
   }
 }
 
-/* Section Partners */
 .partners-section {
   padding: 100px 0;
   background: linear-gradient(135deg, #0d1117 0%, #2e1065 40%, #430979 100%);
@@ -166,6 +168,8 @@ html {
   box-shadow:
     0 -15px 30px rgba(0, 0, 0, 0.4),
     0 20px 40px rgba(168, 85, 247, 0.15);
+  opacity: 0;
+  animation: fadeIn 1.4s ease-out 0.3s forwards;
 }
 
 .partners-title {
@@ -206,11 +210,6 @@ html {
   text-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
 }
 
-.partner-logo:hover {
-  opacity: 1;
-  color: #ffffff;
-}
-
 .partners-footer-text {
   max-width: 700px;
   margin: 0 auto;
@@ -223,19 +222,15 @@ html {
   margin: 5px 0;
 }
 
-/* RESPONSIVE PARTNERS  */
-
 @media (max-width: 768px) {
   .partners-title {
     font-size: 32px;
     padding: 0 20px;
   }
-
   .logos-row {
     gap: 30px;
     padding: 0 20px;
   }
-
   .partner-logo {
     font-size: 1.2rem;
   }
@@ -255,6 +250,8 @@ html {
 
 .feature-text-block {
   flex: 1;
+  opacity: 0;
+  animation: slideInLeft 1.2s ease-out 0.4s forwards;
 }
 
 .feature-caption {
@@ -312,6 +309,8 @@ html {
 .feature-image-block {
   flex: 1;
   height: 480px;
+  opacity: 0;
+  animation: slideInRight 1.2s ease-out 0.4s forwards;
 }
 
 .feature-img {
@@ -322,11 +321,11 @@ html {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
-/* FEATURES ET CTA SECTIONS */
 .features-section {
   padding: 80px 5%;
   color: #ffffff;
 }
+
 .cta-section {
   padding: 80px 5%;
   background: linear-gradient(to bottom, #050614 0%, #0f172a 8%);
@@ -347,13 +346,21 @@ html {
 }
 
 .features-text,
+.cta-graphic,
+.features-image,
 .cta-text {
   flex: 1;
+  opacity: 0;
 }
 
-.features-image,
-.cta-graphic {
-  flex: 1;
+.features-section.is-visible .features-text,
+.cta-section.is-visible .cta-graphic {
+  animation: slideInLeft 1.2s ease-out forwards;
+}
+
+.features-section.is-visible .features-image,
+.cta-section.is-visible .cta-text {
+  animation: slideInRight 1.2s ease-out forwards;
 }
 
 .eyebrow {
@@ -394,13 +401,13 @@ h2 {
   color: #a855f7;
 }
 
-.mockup-placeholder img {
+.mockup-placeholder img,
+.graphic-placeholder img {
   width: 100%;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
-/* RESPONSIVE HOME */
 @media (max-width: 900px) {
   .features-container,
   .cta-container {
@@ -409,5 +416,47 @@ h2 {
   }
   h2 {
     font-size: 2.2rem;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }

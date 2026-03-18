@@ -9,12 +9,12 @@ const Login = () => {
         <form className="login-form">
           <div className="input-group">
             <input type="email" id="login-email" required placeholder=" " />
-            <label htmlFor="login-email">Email</label>
+            <label htmlFor="login-email">Email *</label>
           </div>
           
           <div className="input-group">
             <input type="password" id="login-password" required placeholder=" " />
-            <label htmlFor="login-password">Password</label>
+            <label htmlFor="login-password">Password *</label>
           </div>
 
           <button type="submit" className="btn-primary login-btn">Se connecter</button>

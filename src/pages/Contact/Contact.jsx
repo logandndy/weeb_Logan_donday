@@ -15,11 +15,11 @@ const Contact = () => {
           <div className="form-row">
             <div className="input-group">
               <input type="text" id="nom" required placeholder=" " />
-              <label htmlFor="nom">Nom</label>
+              <label htmlFor="nom">Nom *</label>
             </div>
             <div className="input-group">
               <input type="text" id="prenom" required placeholder=" " />
-              <label htmlFor="prenom">Prénom</label>
+              <label htmlFor="prenom">Prénom *</label>
             </div>
           </div>
           
@@ -27,13 +27,13 @@ const Contact = () => {
             {/* L'input étrange sur ta maquette a été corrigé pour être propre */}
             <div className="input-group full-width">
               <input type="email" id="email" required placeholder=" " />
-              <label htmlFor="email">Email</label>
+              <label htmlFor="email">Email *</label>
             </div>
           </div>
 
           <div className="input-group full-width">
             <textarea id="message" rows="4" required placeholder=" "></textarea>
-            <label htmlFor="message">Message</label>
+            <label htmlFor="message">Message *</label>
           </div>
 
           <button type="submit" className="btn-primary">Contact</button>

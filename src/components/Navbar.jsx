@@ -11,7 +11,7 @@ const Navbar = () => {
         <div className="nav-left-group">
           <div className="logo"><a href="/" className="logo-link">weeb</a></div>
           <div className="nav-links desktop-only">
-            <Link to="/">Home</Link>
+            <Link to="/">Accueil</Link>
             <Link to="/blog">Blog</Link>
             <Link to="/contact">Contact</Link>
           </div>
@@ -19,8 +19,8 @@ const Navbar = () => {
 
         <div className="nav-right-group">
           <div className="auth-links desktop-only">
-            <Link to="/login" className="login-link">Log In</Link>
-            <Link to="/signup" className="join-btn">Join Now</Link>
+            <Link to="/login" className="login-link">Connexion</Link>
+            <Link to="/signup" className="join-btn">S'inscrire</Link>
           </div>
           
           <button className="burger-menu" onClick={() => setIsMenuOpen(!isMenuOpen)}>
@@ -32,10 +32,10 @@ const Navbar = () => {
 
         {isMenuOpen && (
           <div className="mobile-menu">
-            <Link to="/" onClick={() => setIsMenuOpen(false)}>Home</Link>
+            <Link to="/" onClick={() => setIsMenuOpen(false)}>Accueil</Link>
             <Link to="/contact" onClick={() => setIsMenuOpen(false)}>Contact</Link>
-            <Link to="/login" onClick={() => setIsMenuOpen(false)}>Log In</Link>
-            <Link to="/signup" className="join-btn-mobile" onClick={() => setIsMenuOpen(false)}>Join Now</Link>
+            <Link to="/login" onClick={() => setIsMenuOpen(false)}>Connexion</Link>
+            <Link to="/signup" className="join-btn-mobile" onClick={() => setIsMenuOpen(false)}>S'inscrire</Link>
           </div>
         )}
       </div>

@@ -9,17 +9,22 @@ const Signup = () => {
         <form className="signup-form">
           <div className="input-group">
             <input type="text" id="signup-name" required placeholder=" " />
-            <label htmlFor="signup-name">Nom complet</label>
+            <label htmlFor="signup-name">Nom complet *</label>
           </div>
 
           <div className="input-group">
             <input type="email" id="signup-email" required placeholder=" " />
-            <label htmlFor="signup-email">Email</label>
+            <label htmlFor="signup-email">Email *</label>
           </div>
           
           <div className="input-group">
             <input type="password" id="signup-password" required placeholder=" " />
-            <label htmlFor="signup-password">Mot de passe</label>
+            <label htmlFor="signup-password">Mot de passe *</label>
+          </div>
+
+          <div className="input-group">
+            <input type="password" id="signup-confirm-password" required placeholder=" " />
+            <label htmlFor="signup-confirm-password">Confirmer le mot de passe *</label>
           </div>
 
           <button type="submit" className="btn-primary signup-btn">Créer mon compte</button>

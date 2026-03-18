@@ -73,7 +73,7 @@ body {
   position: relative;
   flex: 1;
   margin-bottom: 30px;
-  text-align: left;
+  text-align: center;
 }
 
 .input-group.full-width {
@@ -123,8 +123,11 @@ body {
 .input-group textarea:focus ~ label,
 .input-group textarea:not(:placeholder-shown) ~ label {
   top: -22px;
-  left: 0;
-  transform: translate(0, 0);
+  left: 50%; /* Modifié : garde le label au milieu */
+  transform: translate(
+    -50%,
+    0
+  ); /* Modifié : ajuste le centrage horizontalement */
   font-size: 0.8rem;
   color: #a855f7;
 }

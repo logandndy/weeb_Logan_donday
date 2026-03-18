@@ -1,10 +1,31 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import '../../styles/Home.css';
 import svgImg from '../../assets/img-2.png'; 
 
 const Cta = () => {
+  const sectionRef = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          entries[0].target.classList.add('is-visible');
+        }
+      },
+      { threshold: 0.2 }
+    );
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current);
+    }
+
+    return () => {
+      if (sectionRef.current) observer.unobserve(sectionRef.current);
+    };
+  }, []);
+
   return (
-    <section className="cta-section">
+    <section className="cta-section" ref={sectionRef}>
       <div className="cta-container">
         <div className="cta-graphic">
           <div className="graphic-placeholder">
