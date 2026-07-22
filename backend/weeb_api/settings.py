@@ -1,40 +1,15 @@
-"""
-Configuration Django du projet Weeb.
+"""Configuration Django du projet Weeb."""
 
-Les valeurs sensibles (SECRET_KEY, DEBUG, hôtes autorisés) sont lues depuis un
-fichier `.env` non versionné. Voir `.env.example` pour la liste des variables.
-"""
-
-import os
 from datetime import timedelta
 from pathlib import Path
 
-from dotenv import load_dotenv
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-load_dotenv(BASE_DIR / ".env")
-
-
-def get_env_bool(name, default=False):
-    """Lit une variable d'environnement et la convertit en booléen."""
-    return os.getenv(name, str(default)).lower() in ("1", "true", "yes", "on")
-
-
-def get_env_list(name, default=""):
-    """Lit une variable d'environnement contenant une liste séparée par des virgules."""
-    raw = os.getenv(name, default)
-    return [item.strip() for item in raw.split(",") if item.strip()]
-
-
-# La clé doit faire au moins 32 octets : en dessous, PyJWT émet un
-# InsecureKeyLengthWarning lors de la signature des tokens en HMAC-SHA256.
-SECRET_KEY = os.getenv(
-    "DJANGO_SECRET_KEY",
-    "cle-de-developpement-uniquement-a-remplacer-en-production",
-)
-DEBUG = get_env_bool("DJANGO_DEBUG", True)
-ALLOWED_HOSTS = get_env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+# En production, il faudrait générer une nouvelle clé, passer DEBUG à False et
+# renseigner ALLOWED_HOSTS. Ces valeurs conviennent au développement.
+SECRET_KEY = "django-insecure-4b8w2n7qk9zx1p6v3m0t5c8hj2df7gl4sr9ba6ye1uo3wn5qkd"
+DEBUG = True
+ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 
 # --- Applications -----------------------------------------------------------
@@ -143,24 +118,21 @@ SIMPLE_JWT = {
 # --- CORS -------------------------------------------------------------------
 # Le frontend React (Vite) tourne sur un port différent de celui de l'API.
 
-CORS_ALLOWED_ORIGINS = get_env_list(
-    "CORS_ALLOWED_ORIGINS",
-    "http://localhost:5173,http://127.0.0.1:5173",
-)
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
 
 
 # --- Envoi d'emails ---------------------------------------------------------
 # En développement, les emails (réinitialisation de mot de passe) sont écrits
 # dans la console plutôt qu'envoyés réellement.
 
-EMAIL_BACKEND = os.getenv(
-    "DJANGO_EMAIL_BACKEND",
-    "django.core.mail.backends.console.EmailBackend",
-)
-DEFAULT_FROM_EMAIL = os.getenv("DJANGO_DEFAULT_FROM_EMAIL", "no-reply@weeb.local")
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "no-reply@weeb.local"
 
 # URL du frontend, utilisée pour construire le lien de réinitialisation.
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+FRONTEND_URL = "http://localhost:5173"
 
 
 # --- Internationalisation ---------------------------------------------------
