@@ -63,11 +63,23 @@
   gap: 16px;
 }
 
-/* Bouton Join Now */
+/* Prénom de l'utilisateur connecté, affiché avant le bouton de déconnexion. */
+.nav-user {
+  color: #a855f7;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-right: 16px;
+}
+
+/* Bouton Join Now. Sert aussi de bouton de déconnexion : les règles ci-dessous
+   neutralisent les styles par défaut de <button>. */
 .join-btn {
   text-decoration: none;
   background-color: #8a2be2;
   color: #ffffff;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
   padding: 12px 24px;
   border-radius: 8px;
   font-weight: 600;
@@ -125,6 +137,31 @@
   font-size: 1rem;
   padding: 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: color 0.3s ease;
+}
+
+.mobile-menu a:hover {
+  color: #a855f7;
+}
+
+/* Dernier élément du menu, mis en avant : inscription ou déconnexion. */
+.join-btn-mobile {
+  background-color: #8a2be2;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 12px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.join-btn-mobile:hover {
+  background-color: #a855f7;
+  color: #ffffff;
 }
 
 /* RESPONSIVE */

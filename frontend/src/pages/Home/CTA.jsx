@@ -1,44 +1,32 @@
-import React, { useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
+import useScrollReveal from '../../hooks/useScrollReveal';
+import svgImg from '../../assets/img-2.png';
 import '../../styles/Home.css';
-import svgImg from '../../assets/img-2.png'; 
 
 const Cta = () => {
-  const sectionRef = useRef(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          entries[0].target.classList.add('is-visible');
-        }
-      },
-      { threshold: 0.2 }
-    );
-
-    if (sectionRef.current) {
-      observer.observe(sectionRef.current);
-    }
-
-    return () => {
-      if (sectionRef.current) observer.unobserve(sectionRef.current);
-    };
-  }, []);
+  const sectionRef = useScrollReveal();
 
   return (
     <section className="cta-section" ref={sectionRef}>
       <div className="cta-container">
         <div className="cta-graphic">
           <div className="graphic-placeholder">
-            <img src={svgImg} alt="svgImg" />
+            <img src={svgImg} alt="Illustration des tendances du web" />
           </div>
         </div>
         <div className="cta-text">
           <p className="eyebrow">LE WEB, UN ÉCOSYSTÈME EN CONSTANTE ÉVOLUTION</p>
-          <h2>Restez informé des dernières <span className="highlight">tendances</span></h2>
+          <h2>
+            Restez informé des dernières <span className="highlight">tendances</span>
+          </h2>
           <p className="description">
-            Chaque semaine, nous analysons les nouveautés du web : frameworks émergents, bonnes pratiques SEO, accessibilité, et bien plus encore. Ne manquez aucune actualité du digital !
+            Chaque semaine, nous analysons les nouveautés du web : frameworks émergents, bonnes
+            pratiques SEO, accessibilité, et bien plus encore. Ne manquez aucune actualité du
+            digital !
           </p>
-          <a href="./Blog" className="text-link">Lire les articles récents &rarr;</a>
+          <Link to="/blog" className="text-link">
+            Lire les articles récents &rarr;
+          </Link>
         </div>
       </div>
     </section>

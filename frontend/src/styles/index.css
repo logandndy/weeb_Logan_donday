@@ -186,6 +186,160 @@ body {
   text-underline-offset: 4px;
 }
 
+/* --- Retours de formulaire --- */
+
+.form-intro {
+  color: #9ca3af;
+  line-height: 1.6;
+  margin-bottom: 30px;
+}
+
+.form-message {
+  border-radius: 8px;
+  padding: 12px 15px;
+  margin-bottom: 25px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.form-message--error {
+  background-color: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  color: #fca5a5;
+}
+
+.form-message--success {
+  background-color: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  color: #86efac;
+}
+
+/* Erreur rattachée à un champ : affichée sous l'input, sans encadré. */
+.form-message--field {
+  background: none;
+  border: none;
+  padding: 6px 0 0;
+  margin: 0;
+  color: #fca5a5;
+  font-size: 0.85rem;
+}
+
+/* --- Boutons secondaires --- */
+
+.btn-danger,
+.btn-ghost {
+  padding: 12px 30px;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease;
+}
+
+.btn-danger {
+  background-color: transparent;
+  border: 1px solid #f87171;
+  color: #f87171;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #f87171;
+  color: #050614;
+}
+
+.btn-ghost {
+  background-color: transparent;
+  border: 1px solid #4b5563;
+  color: #ffffff;
+}
+
+.btn-ghost:hover {
+  border-color: #a855f7;
+  color: #a855f7;
+}
+
+.btn-primary:disabled,
+.btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Case à cocher du formulaire d'article. */
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #9ca3af;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+.checkbox-group input {
+  width: 18px;
+  height: 18px;
+  accent-color: #a855f7;
+  cursor: pointer;
+}
+
+/* --- États de navigation --- */
+
+.route-loading {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  color: #9ca3af;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(168, 85, 247, 0.25);
+  border-top-color: #a855f7;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.not-found-page {
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 120px 5% 80px;
+  gap: 15px;
+}
+
+.not-found-code {
+  font-size: 5rem;
+  font-weight: bold;
+  color: #a855f7;
+  margin: 0;
+  line-height: 1;
+}
+
+.not-found-text {
+  color: #9ca3af;
+  margin-bottom: 20px;
+}
+
+.not-found-page .btn-primary {
+  text-decoration: none;
+}
+
 @media (max-width: 600px) {
   .form-row {
     flex-direction: column;

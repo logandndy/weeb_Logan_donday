@@ -1,5 +1,3 @@
-import React from 'react';
-import Navbar from '../../components/navbar';
 import Hero from './Hero';
 import Partners from './Partners';
 import Features from './Features';
