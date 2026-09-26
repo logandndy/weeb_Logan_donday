@@ -31,3 +31,7 @@ backend/staticfiles/
 *.njsproj
 *.sln
 *.sw?
+
+# Couverture de tests
+.coverage
+htmlcov/
