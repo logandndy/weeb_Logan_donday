@@ -6,8 +6,9 @@
  * remontée des erreurs de validation renvoyées par DRF.
  */
 
-// URL de base de l'API Django (serveur de développement).
-const API_URL = 'http://127.0.0.1:8000/api';
+// URL de base de l'API Django. En production, VITE_API_URL est définie sur
+// Vercel et injectée au moment du build ; en local, on vise le serveur Django.
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api';
 
 const ACCESS_TOKEN_KEY = 'weeb_access_token';
 const REFRESH_TOKEN_KEY = 'weeb_refresh_token';
