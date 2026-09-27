@@ -1,0 +1,32 @@
+# Environnement local complet : API Django + PostgreSQL.
+# Lancer : docker compose up --build   ->  API sur http://localhost:8000
+# Le frontend reste lancé à part avec "npm run dev" (voir README).
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: weeb
+      POSTGRES_USER: weeb
+      POSTGRES_PASSWORD: weeb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U weeb -d weeb"]
+      interval: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    ports:
+      # Port côté machine modifiable : BACKEND_PORT=8001 docker compose up
+      - "${BACKEND_PORT:-8000}:8000"
+    environment:
+      DEBUG: "True"
+      DATABASE_URL: postgresql://weeb:weeb@db:5432/weeb
+      ALLOWED_HOSTS: localhost,127.0.0.1
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

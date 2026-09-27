@@ -1,15 +1,37 @@
-"""Configuration Django du projet Weeb."""
+"""Configuration Django du projet Weeb.
 
+Toute valeur qui change entre le développement et la production (secrets,
+domaines, base de données) est lue depuis les variables d'environnement.
+En local, un fichier backend/.env peut les définir (voir .env.example) ;
+sans lui, des valeurs de développement sont utilisées.
+"""
+
+import os
 from datetime import timedelta
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
+from dotenv import load_dotenv
 
-# En production, il faudrait générer une nouvelle clé, passer DEBUG à False et
-# renseigner ALLOWED_HOSTS. Ces valeurs conviennent au développement.
-SECRET_KEY = "django-insecure-4b8w2n7qk9zx1p6v3m0t5c8hj2df7gl4sr9ba6ye1uo3wn5qkd"
-DEBUG = True
-ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
+
+
+def env_list(name, default=""):
+    """Lit une variable d'environnement de la forme "a,b,c" en liste."""
+    return [item.strip() for item in os.environ.get(name, default).split(",") if item.strip()]
+
+
+DEBUG = os.environ.get("DEBUG", "True").lower() == "true"
+
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    if not DEBUG:
+        raise ImproperlyConfigured("SECRET_KEY doit être définie en production.")
+    SECRET_KEY = "django-insecure-dev-only-key"
+
+ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
 
 
 # --- Applications -----------------------------------------------------------
@@ -41,6 +63,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -70,13 +93,14 @@ WSGI_APPLICATION = "weeb_api.wsgi.application"
 
 
 # --- Base de données --------------------------------------------------------
-# SQLite suffit pour le développement et l'évaluation du projet.
+# En production, DATABASE_URL pointe vers PostgreSQL. Sans elle, on retombe
+# sur SQLite, suffisant pour le développement et les tests.
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    "default": dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600,
+    )
 }
 
 
@@ -118,10 +142,9 @@ SIMPLE_JWT = {
 # --- CORS -------------------------------------------------------------------
 # Le frontend React (Vite) tourne sur un port différent de celui de l'API.
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
+CORS_ALLOWED_ORIGINS = env_list(
+    "CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+)
 
 
 # --- Envoi d'emails ---------------------------------------------------------
@@ -132,7 +155,7 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = "no-reply@weeb.local"
 
 # URL du frontend, utilisée pour construire le lien de réinitialisation.
-FRONTEND_URL = "http://localhost:5173"
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
 
 
 # --- Internationalisation ---------------------------------------------------
@@ -147,6 +170,11 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+# WhiteNoise sert les fichiers statiques (CSS de l'admin) sans serveur web dédié.
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
 
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
