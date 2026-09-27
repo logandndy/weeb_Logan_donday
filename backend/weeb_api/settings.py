@@ -32,6 +32,16 @@ if not SECRET_KEY:
     SECRET_KEY = "django-insecure-dev-only-key"
 
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
+# Render fournit automatiquement le domaine public du service.
+if os.environ.get("RENDER_EXTERNAL_HOSTNAME"):
+    ALLOWED_HOSTS.append(os.environ["RENDER_EXTERNAL_HOSTNAME"])
+
+# Derrière le proxy HTTPS de Render, Django doit savoir que la requête
+# d'origine était chiffrée (sinon l'admin refuse les formulaires en HTTPS).
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 
 # --- Applications -----------------------------------------------------------
