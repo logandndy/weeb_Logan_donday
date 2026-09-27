@@ -35,3 +35,4 @@ backend/staticfiles/
 # Couverture de tests
 .coverage
 htmlcov/
+frontend/coverage/

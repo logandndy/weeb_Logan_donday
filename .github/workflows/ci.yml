@@ -61,7 +61,7 @@ jobs:
           coverage report
 
   frontend:
-    name: Frontend - lint et build
+    name: Frontend - lint, tests et build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -80,6 +80,9 @@ jobs:
 
       - name: Lint
         run: npm run lint
+
+      - name: Tests + couverture
+        run: npm run test:coverage
 
       - name: Build
         run: npm run build

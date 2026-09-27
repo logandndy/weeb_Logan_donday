@@ -7,3 +7,4 @@ dj-database-url==3.0.1
 psycopg[binary]==3.2.10
 whitenoise==6.11.0
 gunicorn==23.0.0
+sentry-sdk==2.70.0

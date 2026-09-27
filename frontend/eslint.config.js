@@ -7,7 +7,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 export default defineConfig([
   // `backend` contient le projet Django : son environnement virtuel embarque
   // du JavaScript tiers (admin Django, DRF) qui n'a pas à être analysé.
-  globalIgnores(['dist', 'backend']),
+  globalIgnores(['dist', 'coverage', 'backend']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
