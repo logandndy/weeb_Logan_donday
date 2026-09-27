@@ -7,4 +7,4 @@ class HealthCheckTests(TestCase):
         response = self.client.get(reverse("health"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"status": "ok", "database": "ok"})
+        self.assertEqual(response.json(), {"status": "ok", "database": "ok", "version": "dev"})

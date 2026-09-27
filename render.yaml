@@ -9,6 +9,9 @@ services:
     region: frankfurt          # même région que la base Neon
     plan: free
     healthCheckPath: /api/health/
+    # Pas de déploiement à chaque commit : c'est le pipeline GitHub Actions
+    # qui déclenche le déploiement, uniquement si tous les tests passent.
+    autoDeployTrigger: "off"
     envVars:
       - key: DEBUG
         value: "False"
