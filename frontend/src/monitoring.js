@@ -22,5 +22,8 @@ export function initMonitoring() {
     // Les traces ne sont propagées qu'à notre propre API.
     tracePropagationTargets: [import.meta.env.VITE_API_URL ?? 'localhost'],
     sendDefaultPii: false,
+    // Les erreurs passent par notre propre domaine (/monitoring), relayées
+    // par Vercel vers Sentry : les bloqueurs de pub ne les interceptent plus.
+    tunnel: '/monitoring',
   });
 }

@@ -1,4 +1,10 @@
 {
   "git": { "deploymentEnabled": false },
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    {
+      "source": "/monitoring",
+      "destination": "https://o4512094741004288.ingest.de.sentry.io/api/4512159110922320/envelope/"
+    },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
