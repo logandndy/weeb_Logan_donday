@@ -25,3 +25,5 @@ services:
         sync: false            # URL du front Vercel
       - key: FRONTEND_URL
         sync: false            # URL du front Vercel
+      - key: SENTRY_DSN
+        sync: false            # clé du projet Sentry (monitoring des erreurs)
