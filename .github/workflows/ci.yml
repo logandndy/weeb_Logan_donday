@@ -1,7 +1,8 @@
-# Intégration continue de Weeb.
+# Pipeline CI/CD de Weeb.
 # À chaque push sur main/develop et à chaque pull request, GitHub vérifie
 # que le backend, le frontend et l'image Docker sont fonctionnels.
-name: CI
+# Sur main uniquement, si tout est vert, l'application est déployée.
+name: CI/CD
 
 on:
   push:
@@ -103,3 +104,43 @@ jobs:
           done
           docker logs weeb
           exit 1
+
+  deploy:
+    name: Déploiement en production
+    runs-on: ubuntu-latest
+    # Les tests conditionnent la mise en ligne : les 3 jobs doivent être verts.
+    needs: [backend, frontend, docker]
+    # Uniquement pour un push sur main (pas pour les PR ni pour develop).
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://weeb-logan-donday.vercel.app
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Backend - déclenchement du déploiement Render
+        run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" > /dev/null
+
+      - name: Frontend - déploiement Vercel
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: npx --yes vercel@latest deploy --prod --token="${{ secrets.VERCEL_TOKEN }}"
+
+      - name: Smoke test - la nouvelle version de l'API est en ligne
+        run: |
+          # Le build Render prend quelques minutes : on attend jusqu'à 15 min
+          # que l'API réponde avec le commit qu'on vient de déployer.
+          for i in $(seq 1 90); do
+            version=$(curl -fs https://weeb-api-tjw9.onrender.com/api/health/ | jq -r .version || true)
+            if [ "$version" = "$GITHUB_SHA" ]; then
+              echo "API en ligne en version $version"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "La nouvelle version n'est pas en ligne après 15 min (version actuelle : $version)"
+          exit 1
+
+      - name: Smoke test - le frontend répond
+        run: curl -fsS -o /dev/null https://weeb-logan-donday.vercel.app/
