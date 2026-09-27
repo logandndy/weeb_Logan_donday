@@ -1,0 +1,10 @@
+# Fichiers exclus de l'image : inutiles, lourds ou secrets.
+venv/
+__pycache__/
+*.py[cod]
+db.sqlite3
+media/
+staticfiles/
+.env
+Dockerfile
+.dockerignore
