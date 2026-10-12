@@ -118,6 +118,13 @@
   background-color: #9333ea;
 }
 
+.newsletter-success {
+  max-width: 300px;
+  color: #c084fc;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 /* RESPONSIVE */
 @media (max-width: 768px) {
   .footer-container {

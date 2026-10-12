@@ -57,6 +57,15 @@
   color: #ffffff; /* Devient blanc au hover */
 }
 
+/* Page en cours */
+.nav-links a.active {
+  color: #ffffff;
+  text-decoration: underline;
+  text-decoration-color: #a855f7;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
+}
+
 .nav-right-group {
   display: flex;
   align-items: center;
@@ -140,7 +149,8 @@
   transition: color 0.3s ease;
 }
 
-.mobile-menu a:hover {
+.mobile-menu a:hover,
+.mobile-menu a.active {
   color: #a855f7;
 }
 

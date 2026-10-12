@@ -179,16 +179,58 @@ html {
   margin-bottom: 60px;
 }
 
+.logos-marquee {
+  overflow: hidden;
+  margin-bottom: 50px;
+  /* Les logos apparaissent et disparaissent en fondu sur les bords. */
+  mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
+}
+
+/* La liste est affichée deux fois à la suite : quand la piste a défilé de
+   -50 %, la seconde copie est exactement à la place de la première, et
+   l'animation peut boucler sans saut visible. */
+.logos-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 25s linear infinite;
+}
+
+.logos-marquee:hover .logos-track {
+  animation-play-state: paused;
+}
+
 .logos-row {
   display: flex;
-  flex-direction: row;
-  justify-content: center;
   align-items: center;
-  gap: 10%;
-  flex-wrap: wrap;
-  margin-bottom: 50px;
-  padding-left: 15px;
-  padding-right: 15px;
+  gap: 80px;
+  padding-right: 80px;
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Respecte le réglage système « réduire les animations » : liste fixe. */
+@media (prefers-reduced-motion: reduce) {
+  .logos-track {
+    animation: none;
+    width: auto;
+    justify-content: center;
+  }
+  .logos-row[aria-hidden='true'] {
+    display: none;
+  }
+  .logos-row {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 40px;
+    padding: 0 20px;
+  }
 }
 
 .partner-logo {
@@ -210,115 +252,18 @@ html {
   text-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
 }
 
-.partners-footer-text {
-  max-width: 700px;
-  margin: 0 auto;
-}
-
-.partners-footer-text p {
-  font-size: 16px;
-  color: #666;
-  line-height: 1.5;
-  margin: 5px 0;
-}
-
 @media (max-width: 768px) {
   .partners-title {
     font-size: 32px;
     padding: 0 20px;
   }
   .logos-row {
-    gap: 30px;
-    padding: 0 20px;
+    gap: 50px;
+    padding-right: 50px;
   }
   .partner-logo {
     font-size: 1.2rem;
   }
-}
-
-.feature-section {
-  padding: 100px 0;
-  background-color: #050614;
-}
-
-.flex-content {
-  display: flex;
-  align-items: center;
-  gap: 60px;
-  text-align: left;
-}
-
-.feature-text-block {
-  flex: 1;
-  opacity: 0;
-  animation: slideInLeft 1.2s ease-out 0.4s forwards;
-}
-
-.feature-caption {
-  display: block;
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: 3px;
-  color: #ffffff;
-  margin-bottom: 16px;
-  text-transform: uppercase;
-}
-
-.feature-main-title {
-  font-size: 72px;
-  font-weight: 800;
-  line-height: 1.1;
-  color: #ffffff;
-  margin-bottom: 24px;
-}
-
-.feature-description {
-  font-size: 18px;
-  color: #b3b3b3;
-  line-height: 1.6;
-  margin-bottom: 32px;
-}
-
-.explorer-btn {
-  background: none;
-  border: none;
-  color: #ffffff;
-  font-size: 18px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0;
-  transition: color 0.3s ease;
-}
-
-.explorer-btn:hover {
-  color: #a855f7;
-}
-
-.explorer-btn .arrow {
-  font-size: 24px;
-  transition: transform 0.3s ease;
-}
-
-.explorer-btn:hover .arrow {
-  transform: translateX(8px);
-}
-
-.feature-image-block {
-  flex: 1;
-  height: 480px;
-  opacity: 0;
-  animation: slideInRight 1.2s ease-out 0.4s forwards;
-}
-
-.feature-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 20px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
 .features-section {
