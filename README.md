@@ -178,7 +178,7 @@ Chacune suit le même schéma :
 | `urls.py` | Routes de l'application |
 | `admin.py` | Écrans de l'admin Django |
 | `permissions.py` | Règles d'accès spécifiques (articles) |
-| `tests.py` | Tests de l'application |
+| `tests/` | Tests de l'application (package, un fichier `test_*.py` par thème) |
 
 | Application | Contenu |
 |---|---|

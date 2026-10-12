@@ -52,7 +52,7 @@ class UserManager(BaseUserManager):
 class User(AbstractBaseUser, PermissionsMixin):
     """Utilisateur de la plateforme Weeb.
 
-    Trois profils coexistent, comme demandé par le cahier des charges :
+    Profils prévus par le cahier des charges :
 
     - visiteur non authentifié : aucun enregistrement en base ;
     - utilisateur inscrit en attente de validation : `is_active=False`, il ne

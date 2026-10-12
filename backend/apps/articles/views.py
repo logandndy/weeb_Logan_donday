@@ -29,16 +29,21 @@ class ArticleViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Retourne les articles publiés, auxquels s'ajoutent les brouillons de l'utilisateur.
 
-        Un visiteur non authentifié ne voit que les articles publiés. Un
-        utilisateur connecté voit en plus ses propres brouillons, afin de
-        pouvoir les relire et les modifier.
+        Un visiteur ne voit que les articles publiés. Un utilisateur connecté
+        voit en plus ses propres brouillons, afin de pouvoir les relire et les
+        modifier. Un administrateur voit tout.
         """
+        # select_related : l'auteur est chargé dans la même requête SQL que
+        # l'article, au lieu d'une requête par article de la liste.
         queryset = Article.objects.select_related("author")
         user = self.request.user
 
+        if user.is_staff:
+            return queryset
         if user.is_authenticated:
-            if user.is_staff:
-                return queryset
             return queryset.filter(Q(is_published=True) | Q(author=user))
-
         return queryset.filter(is_published=True)
+
+    def perform_create(self, serializer):
+        """Rattache l'article à l'utilisateur connecté, jamais à un auteur envoyé par le client."""
+        serializer.save(author=self.request.user)
