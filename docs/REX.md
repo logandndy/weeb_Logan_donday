@@ -294,6 +294,7 @@ flowchart LR
     api -- "SQL / TLS" --> db
     api -. erreurs .-> sentry
     uptime -- "GET /api/health/" --> api
+    uptime -- "GET /" --> front
     sentry --> mail
     uptime --> mail
     repo --> actions
@@ -309,7 +310,7 @@ flowchart LR
 | **Neon** | Stocke les données (utilisateurs, articles, messages) | Accessible uniquement par l'API, connexion chiffrée |
 | **GitHub Actions** | Teste et déploie | Déclenché par chaque push, appelle Render et Vercel si tout est vert |
 | **Sentry** | Centralise les erreurs back et front | Envoie un email à chaque nouvelle erreur |
-| **UptimeRobot** | Vérifie de l'extérieur que l'API répond | Envoie un email si `/api/health/` ne répond plus |
+| **UptimeRobot** | Vérifie de l'extérieur que l'API et le site répondent | Envoie un email si l'un des deux ne répond plus |
 
 ---
 
@@ -364,6 +365,7 @@ voient qu'avec la vraie base.
 | Ce qui est surveillé | Outil | Pourquoi |
 |---|---|---|
 | Disponibilité de l'API **et** de la base | UptimeRobot sur `/api/health/` | La route fait un `SELECT 1` : une API qui répond sans base est quand même en panne. Elle renvoie 503 dans ce cas |
+| Disponibilité du site | UptimeRobot sur la page d'accueil Vercel | Le front et l'API peuvent tomber indépendamment, chacun a sa sonde |
 | Erreurs du backend (exceptions Python) | Sentry | Une erreur 500 est invisible pour moi si personne ne la signale |
 | Erreurs du frontend (exceptions JavaScript) | Sentry | Elles se produisent dans le navigateur du visiteur, aucun log serveur ne les voit |
 | Temps de réponse | Sentry (traces sur 10 % des requêtes) | Détecter une lenteur avant qu'elle ne devienne une panne |
@@ -379,7 +381,7 @@ voient qu'avec la vraie base.
 - **Sentry frontend** : initialisé dans `monitoring.js`. Les rapports passent par
   `/monitoring`, une réécriture Vercel vers Sentry : les bloqueurs de publicité
   bloquent les domaines Sentry, mais pas le domaine du site.
-- **UptimeRobot** : sonde HTTP externe sur `/api/health/` toutes les 5 minutes.
+- **UptimeRobot** : deux sondes HTTP externes toutes les 5 minutes, une sur `/api/health/`, une sur le site Vercel.
 - Une route `/api/debug-sentry/`, réservée aux administrateurs, déclenche une
   erreur volontaire pour vérifier que la chaîne fonctionne.
 
@@ -391,11 +393,27 @@ voient qu'avec la vraie base.
 - **Render** : graphiques CPU et mémoire, logs en direct.
 - **GitHub Actions** : historique des pipelines, durée et résultat de chaque job.
 
+**UptimeRobot** : les deux sondes sont vertes, 100 % de disponibilité depuis
+leur mise en place (plus de 14 jours sans incident).
+
+![Tableau de bord UptimeRobot](img/uptimerobot.png)
+
+**Sentry, vue des projets** : un projet par partie de l'application, 0 erreur
+sur la période.
+
+![Projets Sentry](img/sentry-projets.png)
+
+**Sentry, projet `weeb-api`** : 100 % de sessions sans crash sur 14 jours,
+erreurs rattachées aux versions déployées (`ced88f2`, `fdcb2e8`, les SHA des
+commits de `main`).
+
+![Détail du projet weeb-api dans Sentry](img/sentry-api.png)
+
 ### Alertes
 
 | Déclencheur | Canal |
 |---|---|
-| `/api/health/` ne répond pas ou renvoie une erreur (503) | Email UptimeRobot |
+| `/api/health/` ou le site ne répond pas, ou renvoie une erreur (503) | Email UptimeRobot |
 | Nouvelle erreur détectée par Sentry | Email Sentry |
 | Pipeline en échec | Email GitHub |
 | Déploiement Render en échec | Email Render |
@@ -438,8 +456,9 @@ la main.
 | Couverture frontend | ~65 % des lignes mesurées | `npm run test:coverage` | Concentrée sur `api.js` et la protection des routes, le cœur technique ; les pages elles-mêmes ne sont pas testées |
 | Taux de réussite du pipeline | Les 15 derniers runs verts | Onglet *Actions* | Un pipeline souvent rouge signale du code poussé sans être vérifié |
 | Durée du pipeline jusqu'à la mise en ligne | ~5 à 10 min (surtout le build Render) | Onglet *Actions* | Délai pour livrer un correctif |
-| Disponibilité de l'API | Pourcentage UptimeRobot | Dashboard UptimeRobot | Ce que le client perçoit en premier |
-| Nombre d'erreurs en production | Compteur Sentry | Dashboard Sentry | Mesure directe des bugs subis par les visiteurs |
+| Disponibilité de l'API et du site | 100 % sur 14 jours | Dashboard UptimeRobot | Ce que le client perçoit en premier |
+| Sessions sans crash (API) | 100 % | Sentry, projet `weeb-api` | Part des utilisations qui se terminent sans erreur |
+| Nombre d'erreurs en production | 0 sur 14 jours (back et front) | Dashboard Sentry | Mesure directe des bugs subis par les visiteurs |
 | Temps de réponse de l'API | Traces Sentry | Sentry *Performance* | Une API lente dégrade l'expérience avant même de tomber |
 | Lint frontend | 0 erreur, 0 warning | Job `frontend` | Code homogène, erreurs de hooks détectées avant l'exécution |
 | Taille de l'image Docker | ~293 Mo | `docker images` | Ressources et temps de déploiement |
