@@ -24,6 +24,7 @@ Deux serveurs en parallèle.
 cd backend
 python -m venv venv && venv\Scripts\activate
 pip install -r requirements.txt
+copy .env.example .env        # active le mode développement
 python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver
@@ -46,20 +47,23 @@ docker compose up --build    # API sur http://localhost:8000
 
 ### Configuration
 
-Sans configuration, le projet tourne en mode développement (SQLite, clé de dev,
-CORS ouvert sur `localhost:5173`). Pour personnaliser, copier
-[backend/.env.example](backend/.env.example) en `backend/.env`. Le fichier `.env`
-n'est jamais versionné.
+Le backend est **sécurisé par défaut** : sans configuration, il démarre en mode
+production et exige une vraie `SECRET_KEY`. En local, on copie
+[backend/.env.example](backend/.env.example) en `backend/.env`, qui active le mode
+développement (`DEBUG=True`, SQLite, CORS ouvert sur `localhost:5173`). Le
+fichier `.env` n'est jamais versionné.
 
 | Variable | Où | Rôle |
 |---|---|---|
-| `DEBUG` | back | `False` en production |
+| `DEBUG` | back | `True` en local uniquement, `False` par défaut |
 | `SECRET_KEY` | back | Obligatoire si `DEBUG=False`, générée par Render en prod |
 | `ALLOWED_HOSTS` | back | Domaines acceptés par Django |
 | `DATABASE_URL` | back | PostgreSQL (Neon) en prod, vide = SQLite |
 | `CORS_ALLOWED_ORIGINS` | back | URL du front autorisée à appeler l'API |
 | `FRONTEND_URL` | back | Sert à construire le lien de réinitialisation du mot de passe |
 | `SENTRY_DSN` | back | Monitoring des erreurs, vide = désactivé |
+| `BREVO_API_KEY` | back | Envoi réel des emails via Brevo, vide = emails affichés dans la console |
+| `DEFAULT_FROM_EMAIL` | back | Expéditeur des emails, doit être vérifié dans Brevo |
 | `VITE_API_URL` | front | URL de l'API, défaut `http://127.0.0.1:8000/api` |
 | `VITE_SENTRY_DSN` | front | Monitoring des erreurs côté navigateur |
 
@@ -206,6 +210,7 @@ Chacune suit le même schéma :
 | `whitenoise` | Sert les fichiers statiques de l'admin sans serveur web supplémentaire |
 | `gunicorn` | Serveur de production (le `runserver` de Django n'est pas fait pour ça) |
 | `sentry-sdk` | Monitoring des erreurs en production |
+| `django-anymail` | Envoi des emails par l'API HTTP de Brevo (Render gratuit bloque le SMTP) |
 
 ## Authentification et sécurité
 
@@ -245,8 +250,13 @@ Chacune suit le même schéma :
   par leur auteur.
 - **Front** : `ProtectedRoute` n'est **pas** une sécurité, elle évite d'afficher
   un écran inutilisable. C'est le backend qui refuse réellement les requêtes.
-- **Production** : `DEBUG=False`, clé secrète générée par Render, cookies
-  sécurisés, CORS limité au domaine Vercel, aucun secret dans Git.
+- **Limitation du nombre de requêtes** : au-delà de 5 connexions par minute,
+  10 inscriptions, 5 demandes de réinitialisation ou 10 messages de contact par
+  heure et par IP, l'API répond `429`. Cela freine la force brute et le spam.
+- **Production** : `DEBUG=False` par défaut (une variable oubliée ne peut pas
+  ouvrir le mode debug), clé secrète générée par Render, redirection HTTP vers
+  HTTPS, HSTS d'un an, cookies sécurisés, CORS limité au domaine Vercel, aucun
+  secret dans Git. La CI vérifie cette configuration avec `check --deploy`.
 
 ### RGPD
 
@@ -319,7 +329,7 @@ sous le champ concerné plutôt qu'en haut de page.
 ## Tests
 
 ```bash
-cd backend && python manage.py test        # 28 tests
+cd backend && python manage.py test        # 33 tests
 cd frontend && npm run lint && npm test    # 10 tests
 ```
 
