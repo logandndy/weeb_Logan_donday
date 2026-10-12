@@ -90,7 +90,9 @@ const ArticleDetail = () => {
     );
   }
 
-  const isAuthor = user !== null && user.id === article.author.id;
+  // Même règle que le backend (IsAuthorOrReadOnly) et que ArticleForm :
+  // l'auteur ou un administrateur peut modifier et supprimer.
+  const canEdit = user !== null && (user.id === article.author.id || user.is_staff);
 
   return (
     <article className="article-page">
@@ -122,7 +124,7 @@ const ArticleDetail = () => {
           ))}
       </div>
 
-      {isAuthor && (
+      {canEdit && (
         <div className="article-actions">
           <Link to={`/blog/${article.slug}/modifier`} className="btn-primary">
             Modifier

@@ -9,7 +9,9 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/test/setup.js',
     coverage: {
-      include: ['src/services/**', 'src/components/**'],
+      // Couverture mesurée sur la logique partagée (appels API, session,
+      // composants communs). Les pages sont surtout vérifiées par les tests E2E.
+      include: ['src/services/**', 'src/components/**', 'src/context/**'],
     },
   },
 })

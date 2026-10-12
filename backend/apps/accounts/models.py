@@ -22,11 +22,21 @@ class UserManager(BaseUserManager):
         if not email:
             raise ValueError("L'adresse email est obligatoire.")
 
-        email = self.normalize_email(email)
+        # Tout en minuscules, comme à l'inscription : une même adresse ne peut
+        # pas exister en deux exemplaires qui ne diffèrent que par la casse.
+        email = self.normalize_email(email).lower()
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
+
+    def get_by_natural_key(self, email):
+        """Retrouve un utilisateur par email sans tenir compte de la casse.
+
+        Utilisée par l'authentification (connexion JWT et admin) : un compte
+        inscrit avec "ada@weeb.fr" doit pouvoir se connecter avec "Ada@Weeb.fr".
+        """
+        return self.get(email__iexact=email)
 
     def create_user(self, email, password=None, **extra_fields):
         """Crée un utilisateur standard, inactif tant qu'un administrateur ne l'a pas validé."""
@@ -52,7 +62,7 @@ class UserManager(BaseUserManager):
 class User(AbstractBaseUser, PermissionsMixin):
     """Utilisateur de la plateforme Weeb.
 
-    Trois profils coexistent, comme demandé par le cahier des charges :
+    Profils prévus par le cahier des charges :
 
     - visiteur non authentifié : aucun enregistrement en base ;
     - utilisateur inscrit en attente de validation : `is_active=False`, il ne

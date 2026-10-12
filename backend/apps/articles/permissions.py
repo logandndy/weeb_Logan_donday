@@ -13,6 +13,7 @@ class IsAuthorOrReadOnly(permissions.BasePermission):
     message = "Vous ne pouvez modifier ou supprimer que vos propres articles."
 
     def has_object_permission(self, request, view, obj):
+        """Lecture (GET, HEAD, OPTIONS) pour tous ; écriture pour l'auteur ou un membre du staff."""
         if request.method in permissions.SAFE_METHODS:
             return True
         return obj.author == request.user or request.user.is_staff

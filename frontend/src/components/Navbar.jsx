@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
 import '../styles/Navbar.css';
 
+// NavLink ajoute la classe "active" au lien de la page en cours.
+// `end` sur l'accueil : sinon "/" serait actif sur toutes les pages.
 const NAV_LINKS = [
-  { to: '/', label: 'Accueil' },
+  { to: '/', label: 'Accueil', end: true },
   { to: '/blog', label: 'Blog' },
   { to: '/contact', label: 'Contact' },
 ];
@@ -34,9 +36,9 @@ const Navbar = () => {
           </div>
           <div className="nav-links desktop-only">
             {NAV_LINKS.map((link) => (
-              <Link key={link.to} to={link.to}>
+              <NavLink key={link.to} to={link.to} end={link.end}>
                 {link.label}
-              </Link>
+              </NavLink>
             ))}
           </div>
         </div>
@@ -80,9 +82,9 @@ const Navbar = () => {
         {isMenuOpen && (
           <div className="mobile-menu">
             {NAV_LINKS.map((link) => (
-              <Link key={link.to} to={link.to} onClick={closeMenu}>
+              <NavLink key={link.to} to={link.to} end={link.end} onClick={closeMenu}>
                 {link.label}
-              </Link>
+              </NavLink>
             ))}
 
             {isAuthenticated ? (

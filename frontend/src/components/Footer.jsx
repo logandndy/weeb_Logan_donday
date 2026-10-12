@@ -1,7 +1,64 @@
-import React from 'react';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import '../styles/Footer.css';
 
+// Intitulés de la maquette, reliés aux pages qui existent déjà.
+const FOOTER_COLUMNS = [
+  {
+    title: 'PRODUCT',
+    links: [
+      { label: 'Pricing', to: '/contact' },
+      { label: 'Overview', to: '/' },
+      { label: 'Browse', to: '/blog' },
+      { label: 'Accessibility', to: '/contact' },
+      { label: 'Five', to: '/' },
+    ],
+  },
+  {
+    title: 'SOLUTIONS',
+    links: [
+      { label: 'Brainstorming', to: '/blog' },
+      { label: 'Ideation', to: '/blog' },
+      { label: 'Wireframing', to: '/blog' },
+      { label: 'Research', to: '/blog' },
+    ],
+  },
+  {
+    title: 'RESOURCES',
+    links: [
+      { label: 'Help Center', to: '/contact' },
+      { label: 'Blog', to: '/blog' },
+      { label: 'Tutorials', to: '/blog' },
+    ],
+  },
+  {
+    title: 'COMPANY',
+    links: [
+      { label: 'About', to: '/' },
+      { label: 'Press', to: '/blog' },
+      { label: 'Events', to: '/blog' },
+      { label: 'Careers', to: '/contact' },
+    ],
+  },
+];
+
+const SOCIAL_LINKS = [
+  { label: 'YT', name: 'YouTube', href: 'https://www.youtube.com' },
+  { label: 'FB', name: 'Facebook', href: 'https://www.facebook.com' },
+  { label: 'TW', name: 'X (Twitter)', href: 'https://x.com' },
+  { label: 'IG', name: 'Instagram', href: 'https://www.instagram.com' },
+  { label: 'IN', name: 'LinkedIn', href: 'https://www.linkedin.com' },
+];
+
 const Footer = () => {
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
+  /** La newsletter n'a pas encore de backend : on confirme sans recharger la page. */
+  function handleNewsletterSubmit(event) {
+    event.preventDefault();
+    setIsSubscribed(true);
+  }
+
   return (
     <footer className="footer" id="newsletter">
       <div className="footer-container">
@@ -9,54 +66,54 @@ const Footer = () => {
           <h2 className="logo">weeb</h2>
         </div>
         <div className="footer-links">
-          <div className="footer-column">
-            <h3>PRODUCT</h3>
-            <a href="#">Pricing</a>
-            <a href="#">Overview</a>
-            <a href="#">Browse</a>
-            <a href="#">Accessibility</a>
-            <a href="#">Five</a>
-          </div>
-          <div className="footer-column">
-            <h3>SOLUTIONS</h3>
-            <a href="#">Brainstorming</a>
-            <a href="#">Ideation</a>
-            <a href="#">Wireframing</a>
-            <a href="#">Research</a>
-          </div>
-          <div className="footer-column">
-            <h3>RESOURCES</h3>
-            <a href="#">Help Center</a>
-            <a href="#">Blog</a>
-            <a href="#">Tutorials</a>
-          </div>
-          <div className="footer-column">
-            <h3>COMPANY</h3>
-            <a href="#">About</a>
-            <a href="#">Press</a>
-            <a href="#">Events</a>
-            <a href="#">Careers</a>
-          </div>
+          {FOOTER_COLUMNS.map((column) => (
+            <div key={column.title} className="footer-column">
+              <h3>{column.title}</h3>
+              {column.links.map((link) => (
+                <Link key={link.label} to={link.to}>
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          ))}
           <div className="footer-column newsletter-col">
             <h3>NEWSLETTER</h3>
             <p className="newsletter-desc">
               Le web en constante évolution, direct dans votre boîte mail.
             </p>
-            <form className="newsletter-form">
-              <input type="email" placeholder="Votre email" required />
-              <button type="submit">Envoyer</button>
-            </form>
+            {isSubscribed ? (
+              <p className="newsletter-success" role="status">
+                Merci ! La newsletter ouvre bientôt, en attendant retrouvez nos articles sur le
+                blog.
+              </p>
+            ) : (
+              <form className="newsletter-form" onSubmit={handleNewsletterSubmit}>
+                <input
+                  type="email"
+                  placeholder="Votre email"
+                  aria-label="Votre email"
+                  required
+                />
+                <button type="submit">Envoyer</button>
+              </form>
+            )}
           </div>
         </div>
       </div>
       <div className="footer-bottom">
         <p>&copy; 2026 Weeb, Inc. All rights reserved.</p>
         <div className="social-links">
-          <a href="#">YT</a>
-          <a href="#">FB</a>
-          <a href="#">TW</a>
-          <a href="#">IG</a>
-          <a href="#">IN</a>
+          {SOCIAL_LINKS.map((social) => (
+            <a
+              key={social.label}
+              href={social.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={social.name}
+            >
+              {social.label}
+            </a>
+          ))}
         </div>
       </div>
     </footer>

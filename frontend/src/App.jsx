@@ -18,9 +18,6 @@ import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 
-import './styles/index.css';
-import './styles/App.css';
-
 function App() {
   return (
     <AuthProvider>

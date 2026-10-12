@@ -15,6 +15,16 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 User = get_user_model()
 
 
+def check_passwords_match(password, confirmation, field):
+    """Lève une erreur sur `field` si la confirmation diffère du mot de passe.
+
+    Partagée par l'inscription et la réinitialisation, qui demandent toutes
+    deux de saisir le mot de passe deux fois.
+    """
+    if password != confirmation:
+        raise serializers.ValidationError({field: "Les deux mots de passe ne correspondent pas."})
+
+
 class UserSerializer(serializers.ModelSerializer):
     """Représentation publique d'un utilisateur, renvoyée par `/api/auth/me/`."""
 
@@ -57,10 +67,7 @@ class SignupSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         """Vérifie que les deux mots de passe saisis sont identiques."""
-        if attrs["password"] != attrs["password_confirm"]:
-            raise serializers.ValidationError(
-                {"password_confirm": "Les deux mots de passe ne correspondent pas."}
-            )
+        check_passwords_match(attrs["password"], attrs["password_confirm"], "password_confirm")
         return attrs
 
     def create(self, validated_data):
@@ -78,6 +85,7 @@ class LoginSerializer(TokenObtainPairSerializer):
     """
 
     def validate(self, attrs):
+        """Vérifie email et mot de passe (parent), puis ajoute le profil à la réponse."""
         data = super().validate(attrs)
         data["user"] = UserSerializer(self.user).data
         return data
@@ -106,10 +114,14 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     new_password_confirm = serializers.CharField()
 
     def validate(self, attrs):
-        if attrs["new_password"] != attrs["new_password_confirm"]:
-            raise serializers.ValidationError(
-                {"new_password_confirm": "Les deux mots de passe ne correspondent pas."}
-            )
+        """Vérifie la confirmation, puis que le lien (uid + token) est authentique et valide.
+
+        Le token Django est signé et lié à l'état du compte : il devient
+        invalide dès que le mot de passe change, donc utilisable une seule fois.
+        """
+        check_passwords_match(
+            attrs["new_password"], attrs["new_password_confirm"], "new_password_confirm"
+        )
 
         try:
             user_id = force_str(urlsafe_base64_decode(attrs["uid"]))

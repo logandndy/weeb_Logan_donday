@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { articlesApi } from '../../services/api';
+import useAuth from '../../hooks/useAuth';
 import FormMessage from '../../components/FormMessage';
 import '../../styles/Blog.css';
 
@@ -21,6 +22,7 @@ const EMPTY_ARTICLE = {
 const ArticleForm = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const isEditing = slug !== undefined;
 
   const [form, setForm] = useState(EMPTY_ARTICLE);
@@ -28,6 +30,7 @@ const ArticleForm = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(isEditing);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isForbidden, setIsForbidden] = useState(false);
 
   useEffect(() => {
     if (!isEditing) {
@@ -39,7 +42,15 @@ const ArticleForm = () => {
     async function loadArticle() {
       try {
         const data = await articlesApi.retrieve(slug);
-        if (!isStale) {
+        if (isStale) {
+          return;
+        }
+        // Même règle que le backend (IsAuthorOrReadOnly) : l'auteur ou un admin.
+        // Le backend refuserait de toute façon la modification ; on évite
+        // seulement d'afficher un formulaire inutilisable.
+        if (data.author.id !== user.id && !user.is_staff) {
+          setIsForbidden(true);
+        } else {
           setForm({
             title: data.title,
             excerpt: data.excerpt,
@@ -63,7 +74,7 @@ const ArticleForm = () => {
     return () => {
       isStale = true;
     };
-  }, [slug, isEditing]);
+  }, [slug, isEditing, user]);
 
   /** Met à jour un champ du formulaire et efface l'erreur qui lui est associée. */
   function handleChange(event) {
@@ -93,6 +104,15 @@ const ArticleForm = () => {
 
   if (isLoading) {
     return <p className="blog-status">Chargement de l&apos;article...</p>;
+  }
+
+  if (isForbidden) {
+    return (
+      <div className="blog-status">
+        <p>Seul l&apos;auteur de cet article peut le modifier.</p>
+        <Link to={`/blog/${slug}`}>Retour à l&apos;article</Link>
+      </div>
+    );
   }
 
   return (

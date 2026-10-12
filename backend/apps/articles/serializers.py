@@ -22,24 +22,17 @@ class ArticleListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Article
-        fields = [
-            "id",
-            "title",
-            "slug",
-            "excerpt",
-            "cover_image",
-            "author",
-            "created_at",
-        ]
+        fields = ["id", "title", "slug", "excerpt", "cover_image", "author", "created_at"]
 
 
-class ArticleDetailSerializer(serializers.ModelSerializer):
-    """Version complète, utilisée en lecture détaillée, création et mise à jour."""
+class ArticleDetailSerializer(ArticleListSerializer):
+    """Version complète, utilisée en lecture détaillée, création et mise à jour.
 
-    author = ArticleAuthorSerializer(read_only=True)
+    Elle hérite de la version liste (même auteur imbriqué) et ajoute le contenu,
+    le statut de publication et la date de modification.
+    """
 
-    class Meta:
-        model = Article
+    class Meta(ArticleListSerializer.Meta):
         fields = [
             "id",
             "title",
@@ -53,20 +46,16 @@ class ArticleDetailSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["id", "slug", "author", "created_at", "updated_at"]
-
-    def validate_title(self, value):
-        """Vérifie que le titre est suffisamment explicite."""
-        if len(value.strip()) < 5:
-            raise serializers.ValidationError("Le titre doit contenir au moins 5 caractères.")
-        return value.strip()
-
-    def validate_content(self, value):
-        """Vérifie que l'article n'est pas quasiment vide."""
-        if len(value.strip()) < 50:
-            raise serializers.ValidationError("Le contenu doit contenir au moins 50 caractères.")
-        return value.strip()
-
-    def create(self, validated_data):
-        """Rattache automatiquement l'article à l'utilisateur qui le crée."""
-        validated_data["author"] = self.context["request"].user
-        return super().create(validated_data)
+        # DRF retire déjà les espaces autour du texte (trim_whitespace) : la
+        # longueur minimale est donc vérifiée sur le texte réel. Elle évite les
+        # titres peu explicites et les articles quasiment vides.
+        extra_kwargs = {
+            "title": {
+                "min_length": 5,
+                "error_messages": {"min_length": "Le titre doit contenir au moins 5 caractères."},
+            },
+            "content": {
+                "min_length": 50,
+                "error_messages": {"min_length": "Le contenu doit contenir au moins 50 caractères."},
+            },
+        }

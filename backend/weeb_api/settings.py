@@ -23,6 +23,8 @@ def env_list(name, default=""):
     return [item.strip() for item in os.environ.get(name, default).split(",") if item.strip()]
 
 
+# --- Sécurité de base -------------------------------------------------------
+
 # Sécurisé par défaut : le mode debug ne s'active que s'il est demandé
 # explicitement (DEBUG=True dans backend/.env en local). Une variable oubliée
 # en production ne peut donc pas exposer le code et la configuration.
@@ -38,27 +40,12 @@ if not SECRET_KEY:
     SECRET_KEY = "django-insecure-dev-only-key"
 
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
-
-# --- Monitoring des erreurs (Sentry) -----------------------------------------
-# Activé uniquement si SENTRY_DSN est définie (production) : en local et en CI,
-# aucune erreur n'est envoyée.
-if os.environ.get("SENTRY_DSN"):
-    import sentry_sdk
-
-    sentry_sdk.init(
-        dsn=os.environ["SENTRY_DSN"],
-        environment=os.environ.get("SENTRY_ENVIRONMENT", "production"),
-        # Chaque erreur est rattachée au commit déployé.
-        release=os.environ.get("RENDER_GIT_COMMIT"),
-        # 10 % des requêtes mesurées (temps de réponse) : assez pour des
-        # tendances, sans surcharger l'API ni le quota gratuit.
-        traces_sample_rate=0.1,
-        # Pas d'IP ni de données personnelles envoyées à un service tiers (RGPD).
-        send_default_pii=False,
-    )
 # Render fournit automatiquement le domaine public du service.
 if os.environ.get("RENDER_EXTERNAL_HOSTNAME"):
     ALLOWED_HOSTS.append(os.environ["RENDER_EXTERNAL_HOSTNAME"])
+
+
+# --- HTTPS (production) -----------------------------------------------------
 
 # Derrière le proxy HTTPS de Render, Django doit savoir que la requête
 # d'origine était chiffrée (sinon l'admin refuse les formulaires en HTTPS).
@@ -104,6 +91,8 @@ LOCAL_APPS = [
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
+
+# --- Requêtes, routage et gabarits ------------------------------------------
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -244,3 +233,22 @@ MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# --- Monitoring des erreurs (Sentry) ---------------------------------------
+# Activé uniquement si SENTRY_DSN est définie (production) : en local et en CI,
+# aucune erreur n'est envoyée.
+if os.environ.get("SENTRY_DSN"):
+    import sentry_sdk
+
+    sentry_sdk.init(
+        dsn=os.environ["SENTRY_DSN"],
+        environment=os.environ.get("SENTRY_ENVIRONMENT", "production"),
+        # Chaque erreur est rattachée au commit déployé.
+        release=os.environ.get("RENDER_GIT_COMMIT"),
+        # 10 % des requêtes mesurées (temps de réponse) : assez pour des
+        # tendances, sans surcharger l'API ni le quota gratuit.
+        traces_sample_rate=0.1,
+        # Pas d'IP ni de données personnelles envoyées à un service tiers (RGPD).
+        send_default_pii=False,
+    )
