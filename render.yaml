@@ -27,3 +27,7 @@ services:
         sync: false            # URL du front Vercel
       - key: SENTRY_DSN
         sync: false            # clé du projet Sentry (monitoring des erreurs)
+      - key: BREVO_API_KEY
+        sync: false            # clé API Brevo (emails de réinitialisation)
+      - key: DEFAULT_FROM_EMAIL
+        sync: false            # expéditeur vérifié dans Brevo

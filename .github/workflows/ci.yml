@@ -34,6 +34,9 @@ jobs:
           --health-retries 5
     env:
       DATABASE_URL: postgresql://weeb:weeb@localhost:5432/weeb
+      # Les tests appellent l'API en HTTP : en mode production, Django les
+      # redirigerait vers HTTPS. La config de prod est vérifiée à part (check --deploy).
+      DEBUG: "True"
     defaults:
       run:
         working-directory: backend
@@ -51,6 +54,12 @@ jobs:
 
       - name: Vérification de la configuration Django
         run: python manage.py check
+
+      - name: Vérification de la configuration de production
+        env:
+          DEBUG: "False"
+          SECRET_KEY: ${{ github.run_id }}-cle-de-ci-uniquement-pour-check-deploy-0123456789
+        run: python manage.py check --deploy --fail-level WARNING
 
       - name: Migrations manquantes
         run: python manage.py makemigrations --check --dry-run
@@ -100,7 +109,7 @@ jobs:
 
       - name: Démarrage du conteneur et vérification de la route de santé
         run: |
-          docker run -d --name weeb -p 8000:8000 weeb-backend
+          docker run -d --name weeb -p 8000:8000 -e SECRET_KEY=cle-de-ci-uniquement weeb-backend
           for i in $(seq 1 15); do
             if curl -fs http://localhost:8000/api/health/; then exit 0; fi
             sleep 2

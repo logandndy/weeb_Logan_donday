@@ -128,7 +128,7 @@ flowchart LR
     frontend --> deploy
     docker --> deploy
 
-    backend["<b>backend</b><br/>check Django<br/>migrations oubliées<br/>tests + couverture<br/>(PostgreSQL)"]
+    backend["<b>backend</b><br/>check Django<br/>check --deploy<br/>migrations oubliées<br/>tests + couverture<br/>(PostgreSQL)"]
     frontend["<b>frontend</b><br/>npm ci<br/>lint<br/>tests + couverture<br/>build"]
     docker["<b>docker</b><br/>build de l'image<br/>démarrage<br/>appel /api/health/"]
     deploy["<b>deploy</b><br/>(main uniquement)<br/>Render + Vercel<br/>smoke tests"]
@@ -136,7 +136,7 @@ flowchart LR
 
 | Job | Étapes | Ce que ça garantit |
 |---|---|---|
-| `backend` | `manage.py check`, `makemigrations --check`, tests + couverture, sur un vrai PostgreSQL | Configuration valide, aucune migration oubliée, logique métier correcte sur la même base qu'en production |
+| `backend` | `manage.py check`, `check --deploy` en mode production, `makemigrations --check`, tests + couverture, sur un vrai PostgreSQL | Configuration valide, **réglages de sécurité de production sans avertissement**, aucune migration oubliée, logique métier correcte sur la même base qu'en production |
 | `frontend` | `npm ci`, lint, tests + couverture, build | Dépendances exactes du `package-lock.json`, code sans erreur de hooks, application qui compile |
 | `docker` | Build de l'image, lancement du conteneur, attente d'un 200 sur `/api/health/` | L'image ne se contente pas de se construire : elle **démarre** et répond |
 | `deploy` | Déploiement Render, déploiement Vercel, smoke tests | La nouvelle version est réellement en ligne |
@@ -257,7 +257,7 @@ déploiement. [vercel.json](../frontend/vercel.json) redirige toutes les routes 
 | Disque Render éphémère | Fichiers téléversés perdus au redéploiement | Les images d'articles sont des URL, pas des fichiers téléversés |
 | Neon : 0,5 Go, calcul mis en pause hors usage | Quelques centaines de ms au réveil | Suffisant pour un blog |
 | Pas d'étape de pré-déploiement sur Render gratuit | Les migrations ne peuvent pas tourner avant la bascule | Migrations lancées au démarrage du conteneur |
-| Pas d'envoi d'email inclus | Le lien de réinitialisation de mot de passe n'est écrit que dans les logs | Limite connue, voir section 11 |
+| Ports SMTP sortants bloqués sur Render gratuit | Impossible d'envoyer des emails en SMTP classique | Emails envoyés par l'API HTTP de Brevo (port 443) via `django-anymail` ; offre gratuite Brevo de 300 emails par jour |
 
 ---
 
@@ -318,13 +318,13 @@ flowchart LR
 
 ### Ce qui est testé
 
-**Backend : 28 tests**, avec le testeur de Django
+**Backend : 33 tests**, avec le testeur de Django
 
 | Application | Ce qui est vérifié |
 |---|---|
-| `accounts` (10) | Inscription crée un compte inactif ; email en double et mots de passe différents refusés ; connexion refusée tant que le compte n'est pas validé ; connexion qui renvoie tokens et profil ; `/auth/me/` exige un token ; réinitialisation du mot de passe (changement effectif, token invalide refusé, même réponse pour un email inconnu) |
+| `accounts` (14) | Inscription crée un compte inactif ; email en double et mots de passe différents refusés ; connexion refusée tant que le compte n'est pas validé ; connexion qui renvoie tokens et profil ; `/auth/me/` exige un token ; réinitialisation du mot de passe (changement effectif, token invalide refusé, même réponse pour un email inconnu, email envoyé avec le lien, aucun email pour une adresse inconnue) ; **6ᵉ tentative de connexion en une minute refusée (429)** ; 6ᵉ demande de réinitialisation en une heure refusée |
 | `articles` (11) | Liste et détail publics ; brouillons invisibles pour les visiteurs ; création refusée sans connexion ; article rattaché à son auteur ; contenu trop court refusé ; slug unique ; modification et suppression par l'auteur ; **refus (403) pour un autre utilisateur** |
-| `contact` (3) | Message valide enregistré en base ; message trop court refusé ; email invalide refusé |
+| `contact` (4) | Message valide enregistré en base ; message trop court refusé ; email invalide refusé ; 11ᵉ message en une heure refusé (429) |
 | `weeb_api` (4) | `/api/health/` répond sans authentification ; route de test Sentry refusée aux visiteurs et aux non-admins, active pour les admins |
 
 **Frontend : 10 tests**, avec Vitest et Testing Library
@@ -451,7 +451,7 @@ la main.
 
 | Indicateur | Valeur actuelle | Où le lire | Pourquoi il compte |
 |---|---|---|---|
-| Tests backend / frontend | 28 / 10, tous verts | Job `backend` / `frontend` | Filet de sécurité contre les régressions |
+| Tests backend / frontend | 33 / 10, tous verts | Job `backend` / `frontend` | Filet de sécurité contre les régressions |
 | Couverture backend | 94 % | `coverage report` dans la CI | Part du code exécutée par les tests. Ce n'est pas une garantie de qualité, mais une couverture basse signale du code jamais vérifié |
 | Couverture frontend | ~65 % des lignes mesurées | `npm run test:coverage` | Concentrée sur `api.js` et la protection des routes, le cœur technique ; les pages elles-mêmes ne sont pas testées |
 | Taux de réussite du pipeline | Les 15 derniers runs verts | Onglet *Actions* | Un pipeline souvent rouge signale du code poussé sans être vérifié |
@@ -529,9 +529,7 @@ Depuis l'audit, chaque changement part d'une issue et la PR la référence
 |---|---|
 | **Protéger la branche `main`** (PR obligatoire, CI verte requise) | Rendre impossible le contournement du workflow, comme pour `fix/sentry` |
 | **Seuil de couverture minimal** dans la CI | Aujourd'hui la couverture est affichée mais une baisse ne fait pas échouer le pipeline |
-| **Limitation du nombre de requêtes** sur la connexion, l'inscription, la réinitialisation et le contact | Protéger contre la force brute et le spam |
-| **Envoi réel des emails** (SMTP ou service type Brevo) | Le lien de réinitialisation n'est aujourd'hui écrit que dans les logs de l'API |
-| **Durcissement HTTPS** (HSTS, redirection SSL) et `DEBUG=False` par défaut | Un oubli de variable ne doit jamais ouvrir le mode debug |
+| **Limitation du nombre de requêtes par IP réelle** | Le throttling compte par IP, mais derrière le proxy de Render l'IP est lue dans l'en-tête `X-Forwarded-For`, qu'un client peut falsifier. Le compteur est aussi propre à chaque worker gunicorn (cache en mémoire) ; un cache partagé (Redis) le rendrait exact |
 | **Environnement de préproduction** | Tester sur une copie de la prod avant de livrer |
 | **Validation humaine avant la prod** (*required reviewers* sur l'environnement GitHub) | Un dernier regard avant chaque mise en ligne |
 | **Tests de bout en bout** (Playwright) | Vérifier les parcours complets dans un vrai navigateur, pas seulement les briques |
@@ -581,15 +579,20 @@ Les choix les plus structurants, et ce qu'ils m'ont coûté :
   tests conditionnent vraiment la mise en ligne. Coût : des secrets à gérer dans
   GitHub.
 - **Offres gratuites uniquement** : aucun coût pour le client. Coût : mise en
-  veille, builds lents, pas d'email.
+  veille, builds lents, et un contournement pour les emails (API Brevo au lieu
+  du SMTP bloqué par Render).
+- **Sécurisé par défaut** : depuis l'audit, `DEBUG` vaut `False` si rien n'est
+  précisé, et la CI vérifie la configuration de production
+  (`check --deploy --fail-level WARNING`). Coût : il faut un fichier `.env`
+  pour développer en local.
 
 ### Limites de la solution
 
 - Pas d'environnement de préproduction : ce qui est mergé sur `main` part
   directement en production.
 - Démarrage à froid de Render si la sonde de disponibilité est arrêtée.
-- Emails non envoyés en production.
-- Pas de limitation du nombre de requêtes sur les routes publiques.
+- Limitation du nombre de requêtes approximative : compteur par worker, IP
+  lue dans un en-tête falsifiable.
 - Une ancienne `SECRET_KEY` de développement reste visible dans l'historique Git.
   Elle n'est utilisée nulle part : la production utilise une clé générée par
   Render.

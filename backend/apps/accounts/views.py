@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
@@ -22,6 +23,8 @@ class SignupView(generics.CreateAPIView):
 
     serializer_class = SignupSerializer
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "signup"
 
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
@@ -37,6 +40,8 @@ class LoginView(TokenObtainPairView):
 
     serializer_class = LoginSerializer
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "login"
 
 
 class CurrentUserView(generics.RetrieveAPIView):
@@ -53,6 +58,9 @@ class PasswordResetRequestView(APIView):
     """POST /api/auth/password-reset/ — envoie un lien de réinitialisation par email."""
 
     permission_classes = [permissions.AllowAny]
+    # Limite le nombre d'emails qu'on peut faire envoyer à une adresse.
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "password_reset"
 
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
