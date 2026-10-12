@@ -124,34 +124,41 @@ flowchart LR
     push([push / PR]) --> backend
     push --> frontend
     backend --> docker
+    backend --> e2e
+    frontend --> e2e
     backend --> deploy
     frontend --> deploy
     docker --> deploy
+    e2e --> deploy
 
-    backend["<b>backend</b><br/>check Django<br/>check --deploy<br/>migrations oubliées<br/>tests + couverture<br/>(PostgreSQL)"]
+    backend["<b>backend</b><br/>check Django<br/>check --deploy<br/>migrations oubliées<br/>tests unitaires<br/>tests d'intégration<br/>couverture<br/>(PostgreSQL)"]
     frontend["<b>frontend</b><br/>npm ci<br/>lint<br/>tests + couverture<br/>build"]
     docker["<b>docker</b><br/>build de l'image<br/>démarrage<br/>appel /api/health/"]
+    e2e["<b>e2e</b><br/>API + front démarrés<br/>par Playwright<br/>parcours dans Chromium"]
     deploy["<b>deploy</b><br/>(main uniquement)<br/>Render + Vercel<br/>smoke tests"]
 ```
 
 | Job | Étapes | Ce que ça garantit |
 |---|---|---|
-| `backend` | `manage.py check`, `check --deploy` en mode production, `makemigrations --check`, tests + couverture, sur un vrai PostgreSQL | Configuration valide, **réglages de sécurité de production sans avertissement**, aucune migration oubliée, logique métier correcte sur la même base qu'en production |
+| `backend` | `manage.py check`, `check --deploy` en mode production, `makemigrations --check`, tests unitaires puis d'intégration + couverture, sur un vrai PostgreSQL | Configuration valide, **réglages de sécurité de production sans avertissement**, aucune migration oubliée, logique métier correcte sur la même base qu'en production |
 | `frontend` | `npm ci`, lint, tests + couverture, build | Dépendances exactes du `package-lock.json`, code sans erreur de hooks, application qui compile |
 | `docker` | Build de l'image, lancement du conteneur, attente d'un 200 sur `/api/health/` | L'image ne se contente pas de se construire : elle **démarre** et répond |
+| `e2e` | Installation de Python, Node et Chromium, puis `npx playwright test` (Playwright démarre l'API et le front) ; rapport HTML conservé en cas d'échec | Les parcours utilisateur fonctionnent **de bout en bout**, front et API réunis |
 | `deploy` | Déploiement Render, déploiement Vercel, smoke tests | La nouvelle version est réellement en ligne |
 
 `backend` et `frontend` tournent **en parallèle** pour gagner du temps.
 `docker` attend `backend` : inutile de construire l'image si les tests échouent.
+`e2e` attend `backend` et `frontend` : les parcours complets sont les tests les
+plus lents, on ne les lance que si chaque côté est déjà vert.
 
 ### Conditions de déploiement
 
 ```yaml
-needs: [backend, frontend, docker]
+needs: [backend, frontend, docker, e2e]
 if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 ```
 
-- `needs` : le déploiement ne démarre que si les trois jobs sont verts.
+- `needs` : le déploiement ne démarre que si les quatre jobs sont verts.
 - `if` : on ne déploie que sur un push sur `main`, jamais depuis une PR ni depuis
   `develop`. Sur une PR, le job `deploy` apparaît comme *skipped*.
 
@@ -316,25 +323,128 @@ flowchart LR
 
 ## 7. Tests
 
-### Ce qui est testé
+### Trois niveaux de tests
 
-**Backend : 33 tests**, avec le testeur de Django
+| Niveau | Outil | Question posée | Tests |
+|---|---|---|---|
+| **Unitaire** (backend) | Testeur Django, fichiers `test_unit.py`, tag `unit` | Cette brique, seule, fait-elle ce qu'on attend ? (modèle, sérialiseur, permission, envoi d'email) | 65 |
+| **Intégration** (backend) | Testeur Django + client HTTP de DRF, fichiers `test_integration.py`, tag `integration` | Vue, sérialiseur, base, JWT et limitation de débit fonctionnent-ils ensemble, à travers de vraies requêtes HTTP ? | 64 |
+| **Composants** (frontend) | Vitest + Testing Library | La couche `api.js`, la session et les écrans réagissent-ils correctement ? (API simulée) | 26 |
+| **Bout en bout** (E2E) | Playwright + Chromium | Un utilisateur arrive-t-il au bout de ses parcours, front, API et base réunis ? | 9 parcours |
 
-| Application | Ce qui est vérifié |
-|---|---|
-| `accounts` (14) | Inscription crée un compte inactif ; email en double et mots de passe différents refusés ; connexion refusée tant que le compte n'est pas validé ; connexion qui renvoie tokens et profil ; `/auth/me/` exige un token ; réinitialisation du mot de passe (changement effectif, token invalide refusé, même réponse pour un email inconnu, email envoyé avec le lien, aucun email pour une adresse inconnue) ; **6ᵉ tentative de connexion en une minute refusée (429)** ; 6ᵉ demande de réinitialisation en une heure refusée |
-| `articles` (11) | Liste et détail publics ; brouillons invisibles pour les visiteurs ; création refusée sans connexion ; article rattaché à son auteur ; contenu trop court refusé ; slug unique ; modification et suppression par l'auteur ; **refus (403) pour un autre utilisateur** |
-| `contact` (4) | Message valide enregistré en base ; message trop court refusé ; email invalide refusé ; 11ᵉ message en une heure refusé (429) |
-| `weeb_api` (4) | `/api/health/` répond sans authentification ; route de test Sentry refusée aux visiteurs et aux non-admins, active pour les admins |
+C'est une **pyramide** : beaucoup de tests unitaires (rapides, ils pointent
+précisément la fonction cassée), moins de tests d'intégration, et quelques
+tests E2E seulement, réservés aux parcours critiques. Un test E2E est le plus
+convaincant, mais aussi le plus lent (navigateur, deux serveurs) et le plus
+difficile à diagnostiquer quand il casse.
 
-**Frontend : 14 tests**, avec Vitest et Testing Library
+### Organisation
+
+```
+backend/weeb_api/tests/factories.py            utilitaires partagés
+backend/apps/<app>/tests/test_unit.py          tests unitaires (tag "unit")
+backend/apps/<app>/tests/test_integration.py   tests d'intégration (tag "integration")
+frontend/src/**/*.test.js(x)                   tests Vitest, à côté du fichier testé
+e2e/                                           tests Playwright (projet npm séparé)
+```
+
+- **`factories.py`** évite de répéter la création d'un utilisateur ou d'un
+  article dans chaque fichier : `make_user`, `make_admin`, `make_article`,
+  `auth_client` (connecte le client de test avec un **vrai token JWT**) et
+  `ThrottleResetMixin` (remet à zéro les compteurs de limitation avant chaque test).
+- Chaque classe porte un **tag** : `python manage.py test --tag unit` ne lance
+  que les tests unitaires. En CI, les deux niveaux sont deux étapes distinctes.
+- Le dossier **`e2e/` est à la racine**, pas dans `frontend/` : Vitest et
+  ESLint du front y ramasseraient les fichiers Playwright.
+
+Quelques pièges rencontrés, qui expliquent certains choix :
+
+- `force_authenticate` (raccourci de DRF) **ne vérifie pas** que le compte est
+  actif. Les tests « compte suspendu » utilisent donc un vrai token JWT, sinon
+  ils passeraient même si la règle était cassée.
+- Un ancien test (`test_refuse_non_admin_users`) **passait pour une mauvaise
+  raison** : il créait un compte inactif, donc la requête était traitée comme
+  anonyme et la règle « admin seulement » n'était jamais vérifiée. Il utilise
+  maintenant un compte validé.
+- L'horloge de Windows est peu précise : pour tester l'ordre « plus récent
+  d'abord », les dates sont forcées en base. L'expiration d'un lien de
+  réinitialisation se teste en changeant la durée de validité, sans attendre.
+
+### Ce qui est testé côté backend (129 tests)
+
+| Application | Unitaire | Intégration |
+|---|---|---|
+| `accounts` (34 + 26) | Création des comptes (inactif par défaut, mot de passe haché, email en minuscules, superutilisateur) ; validation de l'inscription (email déjà pris quelle que soit la casse, mots de passe faibles ou différents, champs obligatoires, mot de passe jamais renvoyé) ; lien de réinitialisation (uid illisible ou inconnu, token falsifié, **expiré**, **utilisable une seule fois**) ; contenu de l'email ; commande `seed_e2e` | Inscription ; connexion (compte non validé, mauvais mot de passe, email inconnu, **email en majuscules**, profil renvoyé) ; `/auth/me/` (sans token, **compte suspendu après la connexion**) ; renouvellement et vérification des tokens ; **parcours complet de réinitialisation** depuis le lien de l'email (nouveau mot de passe accepté, ancien refusé, lien rejoué refusé) ; limitation de débit (connexion, réinitialisation, inscription, un compteur par route) |
+| `articles` (22 + 27) | Slug (accents, doublons `-2`/`-3`, titre sans lettre, slug stable quand le titre change) ; règles de validation (titre ≥ 5 et contenu ≥ 50 caractères hors espaces, URL d'image) ; champs gérés par le serveur non modifiables ; liste sans le contenu ; permission auteur / admin testée avec de faux objets | **Matrice des droits** ci-dessous ; auteur et slug envoyés par le client ignorés ; `PUT` incomplet refusé ; pagination (11 articles = 2 pages, page inexistante = 404) ; ordre du plus récent au plus ancien |
+| `contact` (6 + 6) | Affichage dans l'admin ; non traité par défaut ; message ≥ 10 caractères ; email valide ; suivi interne jamais exposé | Message enregistré ; refus des messages trop courts et des emails invalides ; lecture des messages impossible (405) ; 11ᵉ message en une heure refusé (429) |
+| `weeb_api` (3 + 5) | Route de santé : OK, version = commit déployé, **503 si la base ne répond plus** | Santé sans authentification ; route de test Sentry refusée aux visiteurs et aux utilisateurs non admin (session et JWT), active pour les admins |
+
+Matrice des droits sur les articles, vérifiée profil par profil :
+
+| Action | Visiteur | Auteur | Autre utilisateur | Admin |
+|---|---|---|---|---|
+| Voir un brouillon (liste et détail) | non (404) | oui | non (404) | oui |
+| Créer un article | 401 | 201 | 201 | 201 |
+| Modifier / supprimer | 401 | 200 / 204 | **403** | 200 / 204 |
+| Agir avec un compte suspendu après la connexion | | 401 | 401 | |
+
+### Ce qui est testé côté frontend (26 tests)
 
 | Fichier | Ce qui est vérifié |
 |---|---|
 | `services/api.test.js` (7) | Token ajouté aux requêtes privées et pas aux routes publiques ; réponse 204 gérée ; token expiré renouvelé puis requête rejouée ; déconnexion si le renouvellement échoue ; erreurs Django converties en erreurs par champ ; message clair si le serveur est injoignable |
+| `context/AuthContext.test.jsx` (5) | Pas d'appel à l'API sans token ; session restaurée au rechargement ; tokens effacés si le profil ne se charge pas ; `login()` et `logout()` |
 | `components/ProtectedRoute.test.jsx` (3) | Un utilisateur connecté voit la page ; un visiteur est redirigé vers `/login` en mémorisant la page demandée ; la décision attend la vérification de la session |
 | `components/Footer.test.jsx` (2) | Les liens de la maquette mènent aux vraies pages ; la newsletter confirme l'inscription sans recharger la page |
 | `pages/Blog/ArticleForm.test.jsx` (2) | L'auteur retrouve son article pré-rempli ; un autre utilisateur voit un refus au lieu du formulaire |
+| `pages/Blog/ArticleDetail.test.jsx` (4) | Boutons Modifier / Supprimer visibles pour l'auteur et pour un admin, masqués pour les autres et les visiteurs |
+| `pages/Connexion/Login.test.jsx` (2) | Message clair sur un refus 401 ; redirection vers le blog après connexion |
+| `pages/Contact/Contact.test.jsx` (1) | Remerciement et formulaire vidé après l'envoi |
+
+### Tests de bout en bout (Playwright)
+
+| Parcours | Ce qui est vérifié dans le navigateur |
+|---|---|
+| Visiteur | Ouvre un article depuis la liste du blog, sans boutons de modification ; ne voit pas le brouillon ; un brouillon ouvert par son adresse est introuvable ; `/blog/nouveau` renvoie vers la connexion |
+| Inscription | Compte créé, message « doit être validé par un administrateur », puis connexion refusée |
+| Publication | L'auteur connecté publie un article, qui s'affiche avec ses boutons et apparaît sur le blog |
+| Modification et suppression | Formulaire pré-rempli, titre modifié sans changer l'adresse de l'article, suppression après confirmation |
+| Contact | Message envoyé, remerciement affiché, formulaire vidé |
+| Mot de passe oublié | Lien depuis la page de connexion, réponse neutre ; lien de réinitialisation incomplet signalé |
+
+Choix de mise en œuvre :
+
+- **Playwright démarre lui-même l'API et le front** (`webServer`), sur des ports
+  dédiés (8001 et 5174) : rien à lancer à la main, et pas de conflit avec les
+  serveurs de développement. J'ai d'ailleurs rencontré le cas : un autre
+  programme occupait déjà le port 8000 de mon poste.
+- **Base SQLite dédiée, recréée à chaque run** (`backend/e2e.sqlite3`), puis
+  remplie par la commande `python manage.py seed_e2e` (un auteur validé, un
+  compte en attente, un article publié, un brouillon). Chaque run part donc du
+  même état, ce qui rend les tests reproductibles. La commande refuse de
+  tourner hors mode `DEBUG` : elle crée des comptes au mot de passe connu.
+- **Limitation de débit** : la connexion est limitée à 5 essais par minute. Un
+  projet `setup` se connecte **une seule fois** par l'interface et mémorise la
+  session (`storageState`), réutilisée par les parcours connectés. Les
+  formulaires limités à l'heure (inscription, contact, mot de passe oublié)
+  ne sont soumis qu'une fois par run, et le serveur redémarré remet les
+  compteurs à zéro.
+- Un seul navigateur à la fois (`workers: 1`) : les parcours partagent la même
+  base. En CI, un test qui échoue est relancé une fois, et le rapport HTML
+  (captures d'écran, traces) est conservé comme artefact pour comprendre l'échec.
+
+Vérifié localement : 10 tests verts (9 parcours + la connexion préalable) sur
+trois runs consécutifs, en 15 à 20 secondes.
+
+### Bugs trouvés en écrivant les tests
+
+| Bug | Correction |
+|---|---|
+| **Connexion sensible à la casse** : l'inscription enregistre l'email en minuscules, mais la connexion cherchait l'adresse exacte. `Ada@weeb.fr` ne pouvait pas se connecter | La recherche du compte à la connexion ignore la casse, et les emails sont enregistrés en minuscules dès la création |
+| Boutons **Modifier / Supprimer cachés aux administrateurs** sur la page d'un article, alors que l'API et le formulaire les autorisent | Même règle partout : l'auteur ou un administrateur |
+| Libellé **« Password \* »** en anglais sur la page de connexion | « Mot de passe \* » |
+
+Chaque correction est couverte par un test qui échouait avant la correction.
 
 ### Pourquoi ces tests
 
@@ -344,7 +454,10 @@ J'ai testé en priorité **ce qui coûterait cher en cas de régression** :
   une faille de sécurité ;
 - le **parcours d'authentification** : sans lui, plus personne ne peut écrire ;
 - la **couche `api.js`** côté front : tous les écrans passent par elle ;
-- la **route de santé** : le déploiement et le monitoring s'appuient dessus.
+- la **route de santé** : le déploiement et le monitoring s'appuient dessus ;
+- les **parcours principaux de bout en bout** : ce sont eux que le client
+  vérifie en premier, et seuls les E2E prouvent que front et API se
+  comprennent (URL de l'API, CORS, format des réponses).
 
 Les tests backend tournent dans la CI sur **PostgreSQL**, comme en production, et
 non sur SQLite : certaines différences (contraintes, comparaisons de texte) ne se
@@ -352,7 +465,10 @@ voient qu'avec la vraie base.
 
 ### Intégration dans le pipeline
 
-- tests back dans le job `backend`, tests front dans le job `frontend` ;
+- tests unitaires puis tests d'intégration (deux étapes) dans le job `backend`,
+  tests front dans le job `frontend` ;
+- le job `e2e` attend que `backend` et `frontend` soient verts : inutile de
+  lancer les tests les plus lents si une brique est déjà cassée ;
 - un seul test en échec fait échouer son job, et donc bloque le job `deploy`
   (`needs`) : **la production garde l'ancienne version** ;
 - le job `docker` est lui-même un test : l'image doit démarrer et répondre ;
@@ -453,9 +569,11 @@ la main.
 
 | Indicateur | Valeur actuelle | Où le lire | Pourquoi il compte |
 |---|---|---|---|
-| Tests backend / frontend | 33 / 14, tous verts | Job `backend` / `frontend` | Filet de sécurité contre les régressions |
-| Couverture backend | 94 % | `coverage report` dans la CI | Part du code exécutée par les tests. Ce n'est pas une garantie de qualité, mais une couverture basse signale du code jamais vérifié |
-| Couverture frontend | ~73 % des lignes mesurées | `npm run test:coverage` | Concentrée sur `api.js`, la protection des routes, le formulaire d'article et le footer ; la plupart des pages ne sont pas testées |
+| Tests backend | 129 (65 unitaires + 64 d'intégration), tous verts | Job `backend` | Filet de sécurité contre les régressions |
+| Tests frontend | 26, tous verts | Job `frontend` | Idem côté interface |
+| Parcours E2E | 9 parcours (+ 1 connexion), tous verts | Job `e2e` | Preuve que l'application fonctionne pour un utilisateur réel, front et API réunis |
+| Couverture backend | 93 % | `coverage report` dans la CI | Part du code de l'application exécutée par les tests (dossiers `tests/` et `migrations/` exclus). Ce n'est pas une garantie de qualité, mais une couverture basse signale du code jamais vérifié |
+| Couverture frontend | ~79 % des lignes mesurées | `npm run test:coverage` | Mesurée sur `services/`, `components/` et `context/`. Les pages ont quelques tests ciblés et sont surtout couvertes par les parcours E2E (~52 % si on mesure tout `src/`) |
 | Taux de réussite du pipeline | Les 15 derniers runs verts | Onglet *Actions* | Un pipeline souvent rouge signale du code poussé sans être vérifié |
 | Durée du pipeline jusqu'à la mise en ligne | ~5 à 10 min (surtout le build Render) | Onglet *Actions* | Délai pour livrer un correctif |
 | Disponibilité de l'API et du site | 100 % sur 14 jours | Dashboard UptimeRobot | Ce que le client perçoit en premier |
@@ -500,7 +618,7 @@ la précédente :
 | Semaine 1 (mars 2026) | Pages vitrine React : Home, Contact, Login, animations |
 | Semaine 2 (juillet - août 2026) | API Django (auth JWT, articles, contact), séparation `frontend/` et `backend/`, branchement du front sur l'API |
 | Semaine 3 (26 - 27 septembre 2026) | Étapes 1 à 7 : configuration, Docker, CI, déploiement, CD, tests front, Sentry |
-| 12 octobre 2026 | Audit complet du projet par rapport aux critères des trois semaines, mise à jour du README, rédaction de ce REX |
+| 12 octobre 2026 | Audit complet du projet par rapport aux critères des trois semaines, mise à jour du README, rédaction de ce REX ; tests réorganisés en trois niveaux (unitaires, intégration, E2E Playwright) et job `e2e` dans la CI |
 
 ### Workflow Git
 
@@ -534,7 +652,6 @@ Depuis l'audit, chaque changement part d'une issue et la PR la référence
 | **Limitation du nombre de requêtes par IP réelle** | Le throttling compte par IP, mais derrière le proxy de Render l'IP est lue dans l'en-tête `X-Forwarded-For`, qu'un client peut falsifier. Le compteur est aussi propre à chaque worker gunicorn (cache en mémoire) ; un cache partagé (Redis) le rendrait exact |
 | **Environnement de préproduction** | Tester sur une copie de la prod avant de livrer |
 | **Validation humaine avant la prod** (*required reviewers* sur l'environnement GitHub) | Un dernier regard avant chaque mise en ligne |
-| **Tests de bout en bout** (Playwright) | Vérifier les parcours complets dans un vrai navigateur, pas seulement les briques |
 | **Scan de sécurité des dépendances** (Dependabot) | Être prévenu des failles connues dans les bibliothèques |
 | **Révocation des tokens JWT** à la déconnexion | Un token de rafraîchissement volé reste valable 7 jours |
 | **Mesure de l'empreinte** (par exemple avec un outil comme Green Metrics Tool sur la CI) | Passer d'une réflexion qualitative à des chiffres |

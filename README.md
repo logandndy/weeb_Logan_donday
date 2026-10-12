@@ -90,6 +90,7 @@ weeb_Logan_donday/
 │   │   ├── articles/      Articles du blog
 │   │   └── contact/       Messages du formulaire de contact
 │   └── Dockerfile         Image de production de l'API
+├── e2e/                   Tests de bout en bout (Playwright)
 ├── docs/REX.md            Dossier de retour d'expérience (DevOps)
 ├── .github/workflows/     Pipeline CI/CD
 ├── docker-compose.yml     Environnement local API + PostgreSQL
@@ -178,7 +179,7 @@ Chacune suit le même schéma :
 | `urls.py` | Routes de l'application |
 | `admin.py` | Écrans de l'admin Django |
 | `permissions.py` | Règles d'accès spécifiques (articles) |
-| `tests/` | Tests de l'application (package, un fichier `test_*.py` par thème) |
+| `tests/` | `test_unit.py` (briques isolées, sans HTTP) et `test_integration.py` (vraies requêtes HTTP + base) |
 
 | Application | Contenu |
 |---|---|
@@ -334,10 +335,42 @@ sous le champ concerné plutôt qu'en haut de page.
 
 ## Tests
 
+Trois niveaux, du plus rapide au plus proche de l'utilisateur. Détails et
+choix dans [docs/REX.md](docs/REX.md#7-tests).
+
+| Niveau | Outil | Ce qui est vérifié | Tests |
+|---|---|---|---|
+| Unitaire (back) | Testeur Django, `test_unit.py` | Une brique seule : modèle, sérialiseur, permission, email | 65 |
+| Intégration (back) | Testeur Django, `test_integration.py` | Vraies requêtes HTTP + base : droits d'accès, JWT, limitation de débit | 64 |
+| Frontend | Vitest + Testing Library | `api.js`, session, composants et pages (API simulée) | 26 |
+| Bout en bout | Playwright (Chromium) | Parcours complets dans un navigateur : front + API + base | 9 parcours |
+
 ```bash
-cd backend && python manage.py test        # 33 tests
-cd frontend && npm run lint && npm test    # 14 tests
+cd backend
+python manage.py test                     # 129 tests
+python manage.py test --tag unit          # 65 tests unitaires
+python manage.py test --tag integration   # 64 tests d'intégration
+
+cd frontend
+npm run lint && npm test                  # 26 tests
+npm run test:coverage                     # couverture
+
+cd e2e
+npm install && npx playwright install chromium   # la première fois
+npx playwright test                       # 9 parcours (+ 1 connexion préalable)
+npx playwright show-report                # rapport HTML
 ```
+
+Les utilitaires partagés par les tests backend (création d'utilisateurs et
+d'articles, client authentifié par un vrai token JWT) sont dans
+[weeb_api/tests/factories.py](backend/weeb_api/tests/factories.py).
+
+Pour les tests E2E, Playwright démarre lui-même l'API (port 8001) et le front
+(port 5174) : pas besoin de lancer les serveurs, et les serveurs de
+développement peuvent rester ouverts. La base `backend/e2e.sqlite3` est
+recréée à chaque run puis remplie par `python manage.py seed_e2e`. En local
+sous Windows, le Python de `backend/venv` est utilisé (variable `PYTHON` pour
+en choisir un autre).
 
 Les endpoints se testent aussi avec Postman, vers `http://127.0.0.1:8000/api`.
 
@@ -348,7 +381,8 @@ Détails et justifications dans [docs/REX.md](docs/REX.md).
 ```
 push ──> GitHub Actions ──┬─ backend : check, migrations, tests (PostgreSQL)
                           ├─ frontend : lint, tests, build
-                          └─ docker : build de l'image + /api/health/
+                          ├─ docker : build de l'image + /api/health/
+                          └─ e2e : parcours Playwright (après back + front)
                                    │ tout vert + branche main
                                    ▼
                      déploiement Render (API) + Vercel (front)
