@@ -1,6 +1,8 @@
 """Tests des endpoints d'authentification."""
 
 from django.contrib.auth import get_user_model
+from django.core import mail
+from django.core.cache import cache
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -15,6 +17,9 @@ class SignupTests(APITestCase):
     """Vérifie l'inscription et la mise en attente de validation."""
 
     url = "/api/auth/signup/"
+
+    def setUp(self):
+        cache.clear()  # remet à zéro les compteurs de throttling
 
     def test_signup_cree_un_compte_en_attente_de_validation(self):
         response = self.client.post(
@@ -72,6 +77,7 @@ class LoginTests(APITestCase):
     """Vérifie la connexion et l'accès au profil."""
 
     def setUp(self):
+        cache.clear()  # remet à zéro les compteurs de throttling
         self.user = User.objects.create_user(
             email="ada@weeb.fr", password=VALID_PASSWORD, first_name="Ada", last_name="Lovelace"
         )
@@ -119,6 +125,7 @@ class PasswordResetTests(APITestCase):
     """Vérifie le parcours de réinitialisation du mot de passe."""
 
     def setUp(self):
+        cache.clear()  # remet à zéro les compteurs de throttling
         self.user = User.objects.create_user(
             email="ada@weeb.fr",
             password=VALID_PASSWORD,
@@ -174,3 +181,56 @@ class PasswordResetTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordResetEmailTests(APITestCase):
+    """Vérifie que la demande de réinitialisation envoie bien le lien par email."""
+
+    def setUp(self):
+        cache.clear()
+        self.user = User.objects.create_user(
+            email="ada@weeb.fr",
+            password=VALID_PASSWORD,
+            first_name="Ada",
+            last_name="Lovelace",
+            is_active=True,
+        )
+
+    def test_demande_envoie_un_email_avec_le_lien(self):
+        self.client.post("/api/auth/password-reset/", {"email": self.user.email}, format="json")
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.user.email])
+        self.assertIn("/reset-password?uid=", mail.outbox[0].body)
+
+    def test_aucun_email_pour_une_adresse_inconnue(self):
+        self.client.post("/api/auth/password-reset/", {"email": "inconnu@weeb.fr"}, format="json")
+
+        self.assertEqual(len(mail.outbox), 0)
+
+
+class ThrottlingTests(APITestCase):
+    """Vérifie la limitation du nombre de requêtes sur les routes publiques."""
+
+    def setUp(self):
+        cache.clear()
+
+    def test_connexion_bloquee_apres_5_essais_par_minute(self):
+        credentials = {"email": "ada@weeb.fr", "password": "MauvaisMotDePasse"}
+        for _ in range(5):
+            response = self.client.post("/api/auth/login/", credentials, format="json")
+            self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        response = self.client.post("/api/auth/login/", credentials, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_reinitialisation_bloquee_apres_5_demandes_par_heure(self):
+        for _ in range(5):
+            self.client.post("/api/auth/password-reset/", {"email": "ada@weeb.fr"}, format="json")
+
+        response = self.client.post(
+            "/api/auth/password-reset/", {"email": "ada@weeb.fr"}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)

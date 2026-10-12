@@ -1,6 +1,7 @@
 """Vue d'enregistrement des messages du formulaire de contact."""
 
 from rest_framework import generics, permissions
+from rest_framework.throttling import ScopedRateThrottle
 
 from .models import ContactMessage
 from .serializers import ContactMessageSerializer
@@ -16,3 +17,6 @@ class ContactMessageCreateView(generics.CreateAPIView):
     queryset = ContactMessage.objects.all()
     serializer_class = ContactMessageSerializer
     permission_classes = [permissions.AllowAny]
+    # Ouvert à tous, donc limité pour éviter le spam.
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "contact"
