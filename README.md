@@ -1,17 +1,26 @@
 # Weeb — blog sur le web
 
 Site vitrine + blog + espace d'authentification.
-Frontend **React (Vite)** à la racine, API **Django REST** dans [backend/](backend/).
+Front **React (Vite)** dans [frontend/](frontend/), API **Django REST** dans [backend/](backend/).
 
-## Démarrage
+| | URL |
+|---|---|
+| Site | https://weeb-logan-donday.vercel.app |
+| API / santé | https://weeb-api-tjw9.onrender.com/api/health/ |
+| Admin | https://weeb-api-tjw9.onrender.com/admin/ |
 
-Deux serveurs en parallèle.
+> API sur l'offre gratuite de Render : la première requête après une pause peut prendre ~1 min.
+
+Le dossier DevOps (semaine 3) est dans [docs/REX.md](docs/REX.md).
+
+## Démarrage en local
 
 ```bash
 # Backend — port 8000
 cd backend
 python -m venv venv && venv\Scripts\activate
 pip install -r requirements.txt
+copy .env.example .env        # active le mode développement
 python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver
@@ -19,188 +28,167 @@ python manage.py runserver
 
 ```bash
 # Frontend — port 5173
+cd frontend
 npm install
 npm run dev
 ```
 
-Site : http://localhost:5173 · API : http://127.0.0.1:8000/api · Admin : http://127.0.0.1:8000/admin
+Variante : `docker compose up --build` lance l'API + PostgreSQL, comme en production.
+
+Le backend est **sécurisé par défaut** : sans `.env`, il démarre en mode
+production et exige une vraie `SECRET_KEY`. Variables principales :
+
+| Variable | Rôle |
+|---|---|
+| `DEBUG` | `True` en local uniquement |
+| `SECRET_KEY` | Obligatoire en production (générée par Render) |
+| `DATABASE_URL` | PostgreSQL (Neon) en prod, vide = SQLite |
+| `CORS_ALLOWED_ORIGINS` · `FRONTEND_URL` | URL du front |
+| `SENTRY_DSN` | Monitoring des erreurs (vide = désactivé) |
+| `BREVO_API_KEY` · `DEFAULT_FROM_EMAIL` | Envoi réel des emails (vide = console) |
+| `VITE_API_URL` (front) | URL de l'API |
 
 ## Architecture
 
 ```
-src/
-├── components/   Composants partagés (Navbar, Footer, ProtectedRoute)
-├── context/      État d'authentification
-├── hooks/        Hooks personnalisés
+frontend/src/
+├── components/   Navbar, Footer, ProtectedRoute
+├── context/      Session utilisateur (AuthProvider)
+├── hooks/        useAuth, useScrollReveal
 ├── pages/        Un dossier par page
-├── services/     Appels à l'API
+├── services/     api.js : tous les appels à l'API
 └── styles/       Une feuille CSS par zone
-backend/          API Django (voir backend/README.md)
+backend/
+├── weeb_api/     Configuration (settings, urls, route de santé)
+└── apps/         accounts · articles · contact
+e2e/              Tests de bout en bout (Playwright)
+docs/REX.md       Dossier DevOps
 ```
 
-Trois choix structurants :
+```
+React (Vercel) ──HTTPS/JSON + JWT──> Django REST (Render) ──> PostgreSQL (Neon)
+```
 
-- **Découpage par page, pas par type de fichier.** Tout ce qui concerne l'accueil
-  vit dans `pages/Home/`, plutôt que dispersé entre `components/`, `styles/` et
-  `utils/`.
-- **Aucun composant n'appelle `fetch` directement.** Tout passe par
-  [services/api.js](src/services/api.js) : l'URL de l'API, le token et le
-  traitement des erreurs sont définis à un seul endroit.
-- **CSS écrit à la main**, sans Bootstrap ni Tailwind : la maquette impose une
-  identité visuelle précise, autant ne pas lutter contre des styles par défaut.
+**Choix structurants**
+
+- **Front découpé par page**, pas par type de fichier : tout ce qui concerne une page est au même endroit.
+- **Un seul point d'accès à l'API** ([api.js](frontend/src/services/api.js)) : URL, token et erreurs gérés une fois.
+- **CSS écrit à la main** : la maquette impose une identité précise, pas de framework à contourner.
+- **Back découpé en 3 apps** (une par domaine), chacune avec `models`, `serializers`, `views`, `urls`, `admin`, `tests/`.
 
 ## Bibliothèques
 
-| Bibliothèque | Rôle |
+| Front | Pourquoi |
 |---|---|
-| `react` | Imposée par le cahier des charges |
-| `react-router-dom` | Navigation sans rechargement, paramètres d'URL (`/blog/:slug`), routes protégées |
-| `vite` | Serveur de dev et build |
-| `eslint` | Détecte les erreurs de hooks avant l'exécution |
+| `react` | Imposé |
+| `react-router-dom` | Navigation, URL `/blog/:slug`, routes protégées |
+| `@sentry/react` | Erreurs JavaScript des visiteurs |
+| `vite` · `eslint` · `vitest` | Build, qualité, tests |
 
-Backend détaillé dans [backend/README.md](backend/README.md).
+| Back | Pourquoi |
+|---|---|
+| `Django` | Imposé : ORM, admin, mots de passe |
+| `djangorestframework` | API REST (serializers, permissions, pagination) |
+| `djangorestframework-simplejwt` | Tokens JWT : front et API sont sur deux domaines |
+| `django-cors-headers` | Seul le front peut appeler l'API |
+| `dj-database-url` · `psycopg` | SQLite en local, PostgreSQL en prod |
+| `whitenoise` · `gunicorn` | Fichiers statiques et serveur de production |
+| `django-anymail` | Emails via l'API Brevo (Render gratuit bloque le SMTP) |
+| `sentry-sdk` · `python-dotenv` | Monitoring, lecture du `.env` |
 
 ## Fonctionnement
 
-```
-React (5173) ──HTTP/JSON──> Django REST (8000) ──> SQLite
-      │                            │
- tokens JWT en              admin Django
- localStorage         (validation des comptes)
-```
-
-Aucune donnée en dur côté front : articles et comptes viennent tous de l'API.
-
-### Routes
-
-| Route | Accès | Appel API |
+| Route front | Accès | API |
 |---|---|---|
-| `/` | public | — |
-| `/blog` | public | `GET /articles/` |
-| `/blog/:slug` | public | `GET /articles/<slug>/` |
-| `/blog/nouveau` | authentifié | `POST /articles/` |
-| `/blog/:slug/modifier` | auteur | `PATCH /articles/<slug>/` |
-| `/contact` | public | `POST /contact/` |
+| `/` · `/contact` | public | `POST /contact/` |
+| `/blog` · `/blog/:slug` | public | `GET /articles/` · `/articles/<slug>/` |
+| `/blog/nouveau` | connecté | `POST /articles/` |
+| `/blog/:slug/modifier` | auteur ou admin | `PATCH` · `DELETE /articles/<slug>/` |
 | `/login` · `/signup` | public | `POST /auth/login/` · `/auth/signup/` |
-| `/mot-de-passe-oublie` · `/reset-password` | public | `POST /auth/password-reset/` |
+| `/mot-de-passe-oublie` · `/reset-password` | public | `POST /auth/password-reset/` · `/confirm/` |
 
-### Authentification
+Autres routes API : `/auth/me/`, `/auth/refresh/`, `/auth/verify/`, `/health/`.
 
-La connexion retourne un token d'accès (30 min) et un token de rafraîchissement
-(7 jours), stockés dans le `localStorage`. Sur une réponse `401`,
-[api.js](src/services/api.js) renouvelle le token puis rejoue la requête une fois.
-Au rechargement de la page, `AuthProvider` appelle `/auth/me/` pour restaurer la
-session.
+**Responsive** : points de rupture à 1150, 1024 (tablette), 992, 768 (menu
+burger), 640 et 600 px. **Interactions** : survol sur liens, boutons et cartes ;
+focus violet et label flottant sur les champs ; contour clavier
+(`:focus-visible`) ; transitions de 0,3 s ; apparition au défilement.
 
-`ProtectedRoute` n'est **pas** une sécurité : elle évite d'afficher un écran
-inutilisable. C'est le backend qui refuse réellement les requêtes.
+**Hors maquette** : bande défilante des partenaires, menu burger animé,
+inscription, mot de passe oublié, pagination, brouillons, page 404, page active
+dans la navbar.
 
-### Rôles
+## Authentification et sécurité
 
-| Profil | Lecture du blog | Écrire | Admin |
+1. **Inscription** : compte créé **inactif**, mot de passe vérifié par les validateurs Django puis haché.
+2. **Validation** : un admin active le compte (action « Valider les comptes sélectionnés »). Avant, la connexion renvoie `401`.
+3. **Connexion** : token d'accès (30 min) + token de rafraîchissement (7 jours), renouvelé automatiquement par `api.js`.
+4. **Mot de passe oublié** : lien signé à usage unique envoyé par email. Réponse identique que l'email existe ou non.
+
+| Profil | Lire | Écrire | Admin |
 |---|:---:|:---:|:---:|
 | Visiteur | oui | non | non |
-| Inscrit non validé | oui | non (connexion refusée) | non |
+| Inscrit non validé | oui | non | non |
 | Utilisateur validé | oui | ses articles | non |
 | Administrateur | oui | tous | oui |
 
-Un compte créé via l'inscription a `is_active=False`. L'administrateur le valide
-depuis l'admin Django ; jusque-là la connexion renvoie `401`.
+**Sécurité des routes**
 
-## Prise en main
+- API **fermée par défaut** (`IsAuthenticated`), routes publiques ouvertes une par une.
+- `IsAuthorOrReadOnly` : seul l'auteur (ou un admin) modifie ou supprime. L'auteur est fixé par le serveur.
+- **Limitation des requêtes** par IP : 5 connexions/min ; 10 inscriptions, 5 resets, 10 messages par heure → `429`.
+- Production : `DEBUG=False` par défaut, HTTPS forcé + HSTS, CORS limité au front, aucun secret dans Git. La CI vérifie tout ça (`check --deploy`).
+- `ProtectedRoute` côté front n'est **pas** une sécurité : c'est le backend qui refuse.
 
-À lire dans cet ordre : [App.jsx](src/App.jsx) (les routes) →
-[services/api.js](src/services/api.js) (le lien avec le back) →
-[context/AuthContext.jsx](src/context/AuthContext.jsx) (l'état de connexion) →
-[pages/Blog/Blog.jsx](src/pages/Blog/Blog.jsx) (le schéma type d'une page qui
-charge des données).
+**RGPD** : données minimales (prénom, nom, email), mots de passe hachés,
+hébergement dans l'UE (Francfort), Sentry sans données personnelles.
 
-Toutes les pages qui chargent des données suivent le même schéma :
+## Prise en main du code
 
-```jsx
-const [data, setData] = useState(null);
-const [isLoading, setIsLoading] = useState(true);
-const [error, setError] = useState('');
+- **Front** : [App.jsx](frontend/src/App.jsx) (routes) → [api.js](frontend/src/services/api.js) (lien avec le back) → [AuthContext.jsx](frontend/src/context/AuthContext.jsx) (session) → [Blog.jsx](frontend/src/pages/Blog/Blog.jsx) (page type qui charge des données).
+- **Back** : [urls.py](backend/weeb_api/urls.py) (toutes les routes) → [articles/views.py](backend/apps/articles/views.py) + [permissions.py](backend/apps/articles/permissions.py) (CRUD et droits) → [accounts/serializers.py](backend/apps/accounts/serializers.py) (inscription, connexion, reset).
 
-useEffect(() => {
-  let isStale = false;              // ignore la réponse si on a quitté la page
+Les pages qui chargent des données suivent toutes le même schéma : états
+`data` / `isLoading` / `error`, et un drapeau `isStale` qui ignore la réponse si
+l'utilisateur a quitté la page entre-temps. Les erreurs Django
+(`{"email": ["..."]}`) s'affichent sous le champ concerné.
 
-  async function load() {
-    try {
-      const result = await articlesApi.list();
-      if (!isStale) setData(result);
-    } catch (apiError) {
-      if (!isStale) setError(apiError.message);
-    } finally {
-      if (!isStale) setIsLoading(false);
-    }
-  }
-
-  load();
-  return () => { isStale = true; };
-}, []);
-```
-
-`isStale` évite une erreur classique : l'utilisateur change de page pendant le
-chargement, la réponse arrive après, React tente de mettre à jour un composant
-démonté.
-
-Les formulaires sont contrôlés. Les erreurs Django (`{"email": ["..."]}`) sont
-converties en `fieldErrors` par `api.js`, ce qui permet d'afficher le message
-sous le champ concerné plutôt qu'en haut de page.
-
-### Conventions
-
-| Élément | Convention |
+| Convention | Règle |
 |---|---|
-| Composant | PascalCase, un fichier chacun |
-| Hook | `use` + camelCase |
-| Fonction, variable | camelCase |
-| Classe CSS | kebab-case préfixée par le bloc (`.article-card-meta`) |
-| Champ d'API | snake_case (imposé par Django) |
-| Commentaire | français, explique le *pourquoi* |
-
-## Responsive et interactions
-
-Points de rupture : 1150 px (hero), 992 px (grille 2 colonnes), 768 px (menu
-burger), 640 px (grille 1 colonne), 600 px (formulaires empilés).
-
-- **Survol** : navigation, boutons, cartes d'articles (translation + zoom couverture)
-- **Focus** : bordure violette et label flottant animé sur les champs
-- **Transitions** : 0,3 s sur couleurs, bordures et transformations
-- **Apparition au défilement** : sections Features et CTA, via `IntersectionObserver`
-  encapsulé dans [useScrollReveal](src/hooks/useScrollReveal.js)
-- **Chargement** : les boutons d'envoi se désactivent pendant la requête
-
-Ajouts hors maquette : menu burger animé, page d'inscription, réinitialisation de
-mot de passe, pagination du blog, page 404, newsletter, navbar reflétant l'état
-de connexion.
+| Composants React | PascalCase |
+| Fonctions, variables JS | camelCase (hooks : `use…`) |
+| Python | classes PascalCase, fonctions snake_case |
+| CSS | kebab-case préfixé par le bloc (`.article-card-meta`) |
+| Commentaires | en français, expliquent le *pourquoi* |
 
 ## Tests
 
+| Niveau | Outil | Tests |
+|---|---|---|
+| Unitaire (back) | Django, `test_unit.py` | 65 |
+| Intégration (back) | Django + client HTTP, `test_integration.py` | 64 |
+| Front | Vitest + Testing Library | 26 |
+| Bout en bout | Playwright (Chromium) | 9 parcours |
+
 ```bash
-cd backend && python manage.py test apps   # 24 tests
-npm run lint && npm run build
+cd backend && python manage.py test               # --tag unit / --tag integration
+cd frontend && npm run lint && npm test
+cd e2e && npm install && npx playwright install chromium && npx playwright test
 ```
 
-Les endpoints se testent aussi avec Postman, vers `http://127.0.0.1:8000/api`.
+Playwright lance lui-même l'API (port 8001) et le front (port 5174) sur une base
+recréée à chaque run. Détails dans le [REX](docs/REX.md#7-tests).
 
-## Git
-
-`main` (stable) ← `develop` (intégration) ← `feat/*` et `fix/*`.
-
-Cycle : issue → branche → commits → Pull Request → validation → suppression.
-
-Commits en *Conventional Commits* : `feat`, `fix`, `refactor`, `style`, `docs`,
-`test`, `chore`.
+## DevOps et Git
 
 ```
-feat: add article creation form
-fix: use imported asset for hero image
+push ─> backend (tests) ─┬─> docker (image + /api/health/)
+     └> frontend (tests) ┴─> e2e (Playwright) ─> deploy Render + Vercel (main uniquement)
 ```
 
-## Configuration
+CI/CD GitHub Actions, API conteneurisée sur Render, base Neon, front Vercel,
+monitoring Sentry + UptimeRobot. Tout est expliqué dans [docs/REX.md](docs/REX.md).
 
-Aucune configuration à faire : les réglages de développement (URL de l'API, clé
-Django, CORS) sont définis directement dans le code. Il suffit de cloner,
-installer les dépendances et lancer les deux serveurs.
+Branches : `main` (production) ← `develop` ← `feat/*`, `fix/*`, `docs/*`.
+Cycle : issue → branche → PR → CI verte → merge → suppression de la branche.
+Commits *Conventional Commits* : `feat:`, `fix:`, `test:`, `docs:`, `ci:`.

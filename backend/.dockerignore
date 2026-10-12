@@ -3,6 +3,7 @@ venv/
 __pycache__/
 *.py[cod]
 db.sqlite3
+e2e.sqlite3
 media/
 staticfiles/
 .env

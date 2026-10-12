@@ -18,7 +18,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Fichiers statiques (CSS de l'admin) préparés une fois pour toutes au build.
-RUN python manage.py collectstatic --noinput
+# Django exige une SECRET_KEY pour démarrer : une valeur jetable suffit ici,
+# la vraie clé n'est fournie qu'à l'exécution par Render.
+RUN SECRET_KEY=build-only python manage.py collectstatic --noinput
 
 # L'application ne tourne pas en root : si elle était compromise,
 # l'attaquant n'aurait pas les droits d'administrateur du conteneur.

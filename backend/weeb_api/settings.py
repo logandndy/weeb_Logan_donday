@@ -23,36 +23,29 @@ def env_list(name, default=""):
     return [item.strip() for item in os.environ.get(name, default).split(",") if item.strip()]
 
 
-DEBUG = os.environ.get("DEBUG", "True").lower() == "true"
+# --- Sécurité de base -------------------------------------------------------
+
+# Sécurisé par défaut : le mode debug ne s'active que s'il est demandé
+# explicitement (DEBUG=True dans backend/.env en local). Une variable oubliée
+# en production ne peut donc pas exposer le code et la configuration.
+DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 SECRET_KEY = os.environ.get("SECRET_KEY")
 if not SECRET_KEY:
     if not DEBUG:
-        raise ImproperlyConfigured("SECRET_KEY doit être définie en production.")
+        raise ImproperlyConfigured(
+            "SECRET_KEY doit être définie en production. "
+            "En local, copier backend/.env.example en backend/.env."
+        )
     SECRET_KEY = "django-insecure-dev-only-key"
 
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
-
-# --- Monitoring des erreurs (Sentry) -----------------------------------------
-# Activé uniquement si SENTRY_DSN est définie (production) : en local et en CI,
-# aucune erreur n'est envoyée.
-if os.environ.get("SENTRY_DSN"):
-    import sentry_sdk
-
-    sentry_sdk.init(
-        dsn=os.environ["SENTRY_DSN"],
-        environment=os.environ.get("SENTRY_ENVIRONMENT", "production"),
-        # Chaque erreur est rattachée au commit déployé.
-        release=os.environ.get("RENDER_GIT_COMMIT"),
-        # 10 % des requêtes mesurées (temps de réponse) : assez pour des
-        # tendances, sans surcharger l'API ni le quota gratuit.
-        traces_sample_rate=0.1,
-        # Pas d'IP ni de données personnelles envoyées à un service tiers (RGPD).
-        send_default_pii=False,
-    )
 # Render fournit automatiquement le domaine public du service.
 if os.environ.get("RENDER_EXTERNAL_HOSTNAME"):
     ALLOWED_HOSTS.append(os.environ["RENDER_EXTERNAL_HOSTNAME"])
+
+
+# --- HTTPS (production) -----------------------------------------------------
 
 # Derrière le proxy HTTPS de Render, Django doit savoir que la requête
 # d'origine était chiffrée (sinon l'admin refuse les formulaires en HTTPS).
@@ -60,6 +53,17 @@ if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    # Toute requête HTTP est redirigée vers HTTPS. La route de santé en est
+    # exemptée : les sondes internes (Docker, CI) l'appellent en HTTP.
+    SECURE_SSL_REDIRECT = True
+    SECURE_REDIRECT_EXEMPT = [r"^api/health/$"]
+    # HSTS : une fois venu en HTTPS, le navigateur refuse le HTTP pendant un an.
+    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+
+# Le préchargement HSTS (liste intégrée aux navigateurs) se demande pour un
+# domaine racine qu'on possède. Ce n'est pas le cas de onrender.com.
+SILENCED_SYSTEM_CHECKS = ["security.W021"]
 
 
 # --- Applications -----------------------------------------------------------
@@ -87,6 +91,8 @@ LOCAL_APPS = [
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
+
+# --- Requêtes, routage et gabarits ------------------------------------------
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -124,9 +130,11 @@ WSGI_APPLICATION = "weeb_api.wsgi.application"
 # En production, DATABASE_URL pointe vers PostgreSQL. Sans elle, on retombe
 # sur SQLite, suffisant pour le développement et les tests.
 
+# "or" et non default= : une variable présente mais vide (DATABASE_URL= dans
+# le .env) doit aussi retomber sur SQLite.
 DATABASES = {
-    "default": dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+    "default": dj_database_url.parse(
+        os.environ.get("DATABASE_URL") or f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
         conn_max_age=600,
     )
 }
@@ -157,6 +165,15 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 10,
+    # Limitation du nombre de requêtes sur les routes publiques sensibles
+    # (force brute sur la connexion, spam de comptes, d'emails et de messages).
+    # Chaque vue concernée déclare son "throttle_scope". Au-delà : 429.
+    "DEFAULT_THROTTLE_RATES": {
+        "login": "5/min",
+        "signup": "10/hour",
+        "password_reset": "5/hour",
+        "contact": "10/hour",
+    },
 }
 
 SIMPLE_JWT = {
@@ -176,11 +193,19 @@ CORS_ALLOWED_ORIGINS = env_list(
 
 
 # --- Envoi d'emails ---------------------------------------------------------
-# En développement, les emails (réinitialisation de mot de passe) sont écrits
-# dans la console plutôt qu'envoyés réellement.
+# En production, les emails passent par l'API HTTP de Brevo (via django-anymail).
+# On n'utilise pas le SMTP : l'offre gratuite de Render bloque les ports SMTP
+# sortants, alors que l'API passe par le port 443 comme n'importe quel appel web.
+# Sans BREVO_API_KEY (local, CI), les emails sont écrits dans la console.
 
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-DEFAULT_FROM_EMAIL = "no-reply@weeb.local"
+if os.environ.get("BREVO_API_KEY"):
+    EMAIL_BACKEND = "anymail.backends.brevo.EmailBackend"
+    ANYMAIL = {"BREVO_API_KEY": os.environ["BREVO_API_KEY"]}
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+# Brevo n'accepte que des expéditeurs vérifiés dans son interface.
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "Weeb <no-reply@weeb.local>")
 
 # URL du frontend, utilisée pour construire le lien de réinitialisation.
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
@@ -208,3 +233,22 @@ MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# --- Monitoring des erreurs (Sentry) ---------------------------------------
+# Activé uniquement si SENTRY_DSN est définie (production) : en local et en CI,
+# aucune erreur n'est envoyée.
+if os.environ.get("SENTRY_DSN"):
+    import sentry_sdk
+
+    sentry_sdk.init(
+        dsn=os.environ["SENTRY_DSN"],
+        environment=os.environ.get("SENTRY_ENVIRONMENT", "production"),
+        # Chaque erreur est rattachée au commit déployé.
+        release=os.environ.get("RENDER_GIT_COMMIT"),
+        # 10 % des requêtes mesurées (temps de réponse) : assez pour des
+        # tendances, sans surcharger l'API ni le quota gratuit.
+        traces_sample_rate=0.1,
+        # Pas d'IP ni de données personnelles envoyées à un service tiers (RGPD).
+        send_default_pii=False,
+    )

@@ -12,9 +12,11 @@ class ContactMessageSerializer(serializers.ModelSerializer):
         model = ContactMessage
         fields = ["id", "first_name", "last_name", "email", "message", "created_at"]
         read_only_fields = ["id", "created_at"]
-
-    def validate_message(self, value):
-        """Refuse les messages trop courts, généralement du bruit ou du spam."""
-        if len(value.strip()) < 10:
-            raise serializers.ValidationError("Le message doit contenir au moins 10 caractères.")
-        return value.strip()
+        # Un message trop court est généralement du bruit ou du spam. DRF retire
+        # les espaces autour du texte avant de mesurer sa longueur.
+        extra_kwargs = {
+            "message": {
+                "min_length": 10,
+                "error_messages": {"min_length": "Le message doit contenir au moins 10 caractères."},
+            },
+        }

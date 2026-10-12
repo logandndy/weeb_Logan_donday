@@ -74,7 +74,7 @@ const Login = () => {
               required
               placeholder=" "
             />
-            <label htmlFor="login-password">Password *</label>
+            <label htmlFor="login-password">Mot de passe *</label>
           </div>
 
           <button type="submit" className="btn-primary login-btn" disabled={isSubmitting}>

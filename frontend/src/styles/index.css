@@ -12,6 +12,16 @@ body {
   box-sizing: border-box;
 }
 
+/* Navigation au clavier : contour visible sur tout élément atteint avec Tab.
+   :focus-visible ne s'affiche pas au clic souris, seulement au clavier. */
+a:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #a855f7;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
 .contact-page,
 .login-page,
 .signup-page {
@@ -90,7 +100,9 @@ body {
   padding: 14px 15px;
   font-size: 1rem;
   outline: none;
-  transition: border-color 0.3s ease;
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
   box-sizing: border-box;
 }
 
@@ -116,18 +128,18 @@ body {
 .input-group input:focus,
 .input-group textarea:focus {
   border: 1px solid #a855f7;
+  /* Halo en remplacement du contour natif supprimé (outline: none). */
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25);
 }
 
 .input-group input:focus ~ label,
 .input-group input:not(:placeholder-shown) ~ label,
 .input-group textarea:focus ~ label,
 .input-group textarea:not(:placeholder-shown) ~ label {
+  /* Le label remonte au-dessus du champ en restant centré. */
   top: -22px;
-  left: 50%; /* Modifié : garde le label au milieu */
-  transform: translate(
-    -50%,
-    0
-  ); /* Modifié : ajuste le centrage horizontalement */
+  left: 50%;
+  transform: translate(-50%, 0);
   font-size: 0.8rem;
   color: #a855f7;
 }
@@ -340,6 +352,26 @@ body {
   text-decoration: none;
 }
 
+/* Tablette */
+@media (max-width: 1024px) {
+  .contact-page,
+  .login-page,
+  .signup-page {
+    padding: 60px 6%;
+  }
+  .contact-header h1 {
+    font-size: 2.6rem;
+  }
+  .login-container,
+  .signup-container {
+    max-width: 520px;
+  }
+  .form-row {
+    gap: 20px;
+  }
+}
+
+/* Mobile */
 @media (max-width: 600px) {
   .form-row {
     flex-direction: column;
