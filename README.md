@@ -138,19 +138,25 @@ plateformes différentes (Vercel et Render) et n'ont pas les mêmes outils.
 
 ### Responsive et interactions
 
-Points de rupture : 1150 px (hero), 992 px (grille 2 colonnes), 768 px (menu
-burger), 640 px (grille 1 colonne), 600 px (formulaires empilés).
+Points de rupture : 1150 px (hero), 1024 px (formulaires en tablette), 992 px
+(grille 2 colonnes), 768 px (menu burger), 640 px (grille 1 colonne), 600 px
+(formulaires empilés).
 
 - **Survol** : navigation, boutons, cartes d'articles (translation + zoom couverture)
-- **Focus** : bordure violette et label flottant animé sur les champs
+- **Focus** : bordure violette, halo et label flottant animé sur les champs ;
+  contour violet `:focus-visible` sur les liens et boutons pour la navigation
+  au clavier
+- **Page active** : le lien de la page en cours est souligné dans la navbar
 - **Transitions** : 0,3 s sur couleurs, bordures et transformations
 - **Apparition au défilement** : sections Features et CTA, via `IntersectionObserver`
   encapsulé dans [useScrollReveal](frontend/src/hooks/useScrollReveal.js)
 - **Chargement** : les boutons d'envoi se désactivent pendant la requête
 
-Ajouts hors maquette : menu burger animé, page d'inscription, réinitialisation de
-mot de passe, pagination du blog, badge brouillon, page 404, navbar reflétant
-l'état de connexion.
+Ajouts hors maquette : **bande défilante des partenaires** (en pause au survol,
+fixe si l'utilisateur a demandé moins d'animations), menu burger animé, page
+d'inscription, réinitialisation de mot de passe, pagination du blog, badge
+brouillon, page 404, navbar reflétant l'état de connexion, confirmation de
+l'inscription à la newsletter.
 
 ## Backend
 
@@ -330,7 +336,7 @@ sous le champ concerné plutôt qu'en haut de page.
 
 ```bash
 cd backend && python manage.py test        # 33 tests
-cd frontend && npm run lint && npm test    # 10 tests
+cd frontend && npm run lint && npm test    # 14 tests
 ```
 
 Les endpoints se testent aussi avec Postman, vers `http://127.0.0.1:8000/api`.

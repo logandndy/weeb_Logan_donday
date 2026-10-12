@@ -327,12 +327,14 @@ flowchart LR
 | `contact` (4) | Message valide enregistré en base ; message trop court refusé ; email invalide refusé ; 11ᵉ message en une heure refusé (429) |
 | `weeb_api` (4) | `/api/health/` répond sans authentification ; route de test Sentry refusée aux visiteurs et aux non-admins, active pour les admins |
 
-**Frontend : 10 tests**, avec Vitest et Testing Library
+**Frontend : 14 tests**, avec Vitest et Testing Library
 
 | Fichier | Ce qui est vérifié |
 |---|---|
 | `services/api.test.js` (7) | Token ajouté aux requêtes privées et pas aux routes publiques ; réponse 204 gérée ; token expiré renouvelé puis requête rejouée ; déconnexion si le renouvellement échoue ; erreurs Django converties en erreurs par champ ; message clair si le serveur est injoignable |
 | `components/ProtectedRoute.test.jsx` (3) | Un utilisateur connecté voit la page ; un visiteur est redirigé vers `/login` en mémorisant la page demandée ; la décision attend la vérification de la session |
+| `components/Footer.test.jsx` (2) | Les liens de la maquette mènent aux vraies pages ; la newsletter confirme l'inscription sans recharger la page |
+| `pages/Blog/ArticleForm.test.jsx` (2) | L'auteur retrouve son article pré-rempli ; un autre utilisateur voit un refus au lieu du formulaire |
 
 ### Pourquoi ces tests
 
@@ -451,9 +453,9 @@ la main.
 
 | Indicateur | Valeur actuelle | Où le lire | Pourquoi il compte |
 |---|---|---|---|
-| Tests backend / frontend | 33 / 10, tous verts | Job `backend` / `frontend` | Filet de sécurité contre les régressions |
+| Tests backend / frontend | 33 / 14, tous verts | Job `backend` / `frontend` | Filet de sécurité contre les régressions |
 | Couverture backend | 94 % | `coverage report` dans la CI | Part du code exécutée par les tests. Ce n'est pas une garantie de qualité, mais une couverture basse signale du code jamais vérifié |
-| Couverture frontend | ~65 % des lignes mesurées | `npm run test:coverage` | Concentrée sur `api.js` et la protection des routes, le cœur technique ; les pages elles-mêmes ne sont pas testées |
+| Couverture frontend | ~73 % des lignes mesurées | `npm run test:coverage` | Concentrée sur `api.js`, la protection des routes, le formulaire d'article et le footer ; la plupart des pages ne sont pas testées |
 | Taux de réussite du pipeline | Les 15 derniers runs verts | Onglet *Actions* | Un pipeline souvent rouge signale du code poussé sans être vérifié |
 | Durée du pipeline jusqu'à la mise en ligne | ~5 à 10 min (surtout le build Render) | Onglet *Actions* | Délai pour livrer un correctif |
 | Disponibilité de l'API et du site | 100 % sur 14 jours | Dashboard UptimeRobot | Ce que le client perçoit en premier |
