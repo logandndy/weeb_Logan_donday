@@ -10,11 +10,23 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 
+def ping(request):
+    """Indique que l'API tourne, sans interroger la base de données.
+
+    Appelée très souvent (health check Render, sonde UptimeRobot). Elle ne
+    touche pas la base : Neon peut ainsi se mettre en veille quand personne
+    n'utilise le site, ce qui préserve le quota gratuit d'heures de calcul.
+    """
+    return JsonResponse({"status": "ok", "version": os.environ.get("RENDER_GIT_COMMIT", "dev")})
+
+
 def health(request):
     """Indique si l'API et sa base de données répondent.
 
-    Utilisée par la plateforme d'hébergement et par le monitoring : un code
-    200 signifie « tout va bien », un code 503 déclenche une alerte.
+    Utilisée par le smoke test du pipeline et par une sonde de monitoring
+    espacée (une fois par heure) : un code 200 signifie « tout va bien »,
+    un code 503 déclenche une alerte. Elle réveille la base à chaque appel,
+    c'est pourquoi les sondes fréquentes utilisent `ping` à la place.
     La version (commit Git déployé, fourni par Render) permet au pipeline
     de vérifier que c'est bien la nouvelle version qui est en ligne.
     """

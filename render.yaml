@@ -8,7 +8,9 @@ services:
     dockerfilePath: ./backend/Dockerfile
     region: frankfurt          # même région que la base Neon
     plan: free
-    healthCheckPath: /api/health/
+    # Route sans base : Render l'appelle en continu, /api/health/ empêcherait
+    # Neon de se mettre en veille et épuiserait son quota gratuit.
+    healthCheckPath: /api/ping/
     # Pas de déploiement à chaque commit : c'est le pipeline GitHub Actions
     # qui déclenche le déploiement, uniquement si tous les tests passent.
     autoDeployTrigger: "off"

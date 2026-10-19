@@ -107,7 +107,8 @@ React (Vercel) ──HTTPS/JSON + JWT──> Django REST (Render) ──> Postgr
 | `/login` · `/signup` | public | `POST /auth/login/` · `/auth/signup/` |
 | `/mot-de-passe-oublie` · `/reset-password` | public | `POST /auth/password-reset/` · `/confirm/` |
 
-Autres routes API : `/auth/me/`, `/auth/refresh/`, `/auth/verify/`, `/health/`.
+Autres routes API : `/auth/me/`, `/auth/refresh/`, `/auth/verify/`, `/health/`
+(API + base), `/ping/` (API seule, pour les sondes fréquentes).
 
 **Responsive** : points de rupture à 1150, 1024 (tablette), 992, 768 (menu
 burger), 640 et 600 px. **Interactions** : survol sur liens, boutons et cartes ;
@@ -165,8 +166,8 @@ l'utilisateur a quitté la page entre-temps. Les erreurs Django
 
 | Niveau | Outil | Tests |
 |---|---|---|
-| Unitaire (back) | Django, `test_unit.py` | 65 |
-| Intégration (back) | Django + client HTTP, `test_integration.py` | 64 |
+| Unitaire (back) | Django, `test_unit.py` | 67 |
+| Intégration (back) | Django + client HTTP, `test_integration.py` | 65 |
 | Front | Vitest + Testing Library | 26 |
 | Bout en bout | Playwright (Chromium) | 9 parcours |
 

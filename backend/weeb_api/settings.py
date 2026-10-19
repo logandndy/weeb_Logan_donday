@@ -56,7 +56,7 @@ if not DEBUG:
     # Toute requête HTTP est redirigée vers HTTPS. La route de santé en est
     # exemptée : les sondes internes (Docker, CI) l'appellent en HTTP.
     SECURE_SSL_REDIRECT = True
-    SECURE_REDIRECT_EXEMPT = [r"^api/health/$"]
+    SECURE_REDIRECT_EXEMPT = [r"^api/health/$", r"^api/ping/$"]
     # HSTS : une fois venu en HTTPS, le navigateur refuse le HTTP pendant un an.
     SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
@@ -132,10 +132,13 @@ WSGI_APPLICATION = "weeb_api.wsgi.application"
 
 # "or" et non default= : une variable présente mais vide (DATABASE_URL= dans
 # le .env) doit aussi retomber sur SQLite.
+# conn_max_age=0 : la connexion est fermée à la fin de chaque requête. Une
+# connexion gardée ouverte par un worker inactif pourrait empêcher Neon de
+# se mettre en veille, et donc consommer le quota gratuit pour rien.
 DATABASES = {
     "default": dj_database_url.parse(
         os.environ.get("DATABASE_URL") or f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
+        conn_max_age=0,
     )
 }
 

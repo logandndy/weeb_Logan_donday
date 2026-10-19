@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from django.test import RequestFactory, TestCase, tag
 
-from weeb_api.views import health
+from weeb_api.views import health, ping
 
 
 @tag("unit")
@@ -39,3 +39,22 @@ class HealthViewTests(TestCase):
 
         self.assertEqual(code, 503)
         self.assertEqual(data["database"], "unreachable")
+
+
+@tag("unit")
+class PingViewTests(TestCase):
+    """La route ping est appelée en continu : elle ne doit jamais toucher la base."""
+
+    def test_ok_sans_interroger_la_base(self):
+        # Si la vue ouvrait un curseur, le mock lèverait une erreur.
+        with patch("django.db.connection.cursor", side_effect=AssertionError("base interrogée")):
+            response = ping(RequestFactory().get("/api/ping/"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(json.loads(response.content)["status"], "ok")
+
+    def test_version_lue_depuis_render_git_commit(self):
+        with patch.dict("os.environ", {"RENDER_GIT_COMMIT": "abc123"}):
+            response = ping(RequestFactory().get("/api/ping/"))
+
+        self.assertEqual(json.loads(response.content)["version"], "abc123")
