@@ -42,9 +42,9 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
           cache: pip
@@ -86,9 +86,9 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
@@ -112,7 +112,7 @@ jobs:
     # On ne construit l'image que si les tests du backend sont passés.
     needs: backend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build de l'image
         run: docker build -t weeb-backend ./backend
@@ -134,11 +134,11 @@ jobs:
     # lancer si les tests backend ou frontend échouent déjà.
     needs: [backend, frontend]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Playwright démarre lui-même l'API Django (base SQLite dédiée, recréée
       # à chaque run) et le frontend Vite : il faut donc Python et Node.
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
           cache: pip
@@ -147,7 +147,7 @@ jobs:
       - name: Installation des dépendances du backend
         run: pip install -r backend/requirements.txt
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
@@ -173,7 +173,7 @@ jobs:
       # téléchargeable depuis la page de l'exécution pour comprendre ce qui a cassé.
       - name: Rapport Playwright
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: e2e/playwright-report/
@@ -190,7 +190,7 @@ jobs:
       name: production
       url: https://weeb-logan-donday.vercel.app
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Backend - déclenchement du déploiement Render
         run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" > /dev/null
