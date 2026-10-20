@@ -122,11 +122,11 @@ export async function request(path, { method = 'GET', body, auth = true } = {}) 
 
   // Un 401 sur une requête authentifiée signifie généralement que le token
   // d'accès a expiré : on le renouvelle puis on rejoue la requête une fois.
+  // Si la session est vraiment terminée, on la rejoue sans token, comme un
+  // visiteur : les pages publiques (le blog) restent ainsi lisibles.
   if (response.status === 401 && auth && tokenStorage.getRefresh()) {
     const newToken = await refreshAccessToken();
-    if (newToken) {
-      response = await sendRequest(newToken);
-    }
+    response = await sendRequest(newToken);
   }
 
   if (response.status === 204) {
@@ -153,10 +153,17 @@ export const authApi = {
     request('/auth/password-reset/confirm/', { method: 'POST', body: payload, auth: false }),
 };
 
-/** Endpoints des articles du blog. */
+/**
+ * Endpoints des articles du blog.
+ *
+ * Le token est joint quand il existe : l'auteur d'un brouillon (ou un admin)
+ * peut ainsi l'ouvrir et le modifier. Le blog public, lui, ne liste que les
+ * articles publiés, que l'on soit connecté ou non.
+ */
 export const articlesApi = {
-  list: (page = 1) => request(`/articles/?page=${page}`, { auth: false }),
-  retrieve: (slug) => request(`/articles/${slug}/`, { auth: false }),
+  list: (page = 1) => request(`/articles/?page=${page}`),
+  mine: (page = 1) => request(`/articles/?mine=true&page=${page}`),
+  retrieve: (slug) => request(`/articles/${slug}/`),
   create: (payload) => request('/articles/', { method: 'POST', body: payload }),
   update: (slug, payload) => request(`/articles/${slug}/`, { method: 'PATCH', body: payload }),
   remove: (slug) => request(`/articles/${slug}/`, { method: 'DELETE' }),

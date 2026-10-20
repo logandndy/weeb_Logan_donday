@@ -97,12 +97,16 @@ class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
     def get_user(self):
-        """Retourne l'utilisateur correspondant à l'email, ou `None` s'il n'existe pas.
+        """Retourne le compte actif correspondant à l'email, ou `None`.
 
         On ne lève volontairement pas d'erreur quand l'email est inconnu : cela
-        permettrait à un attaquant de savoir quels comptes existent.
+        permettrait à un attaquant de savoir quels comptes existent. Un compte
+        pas encore validé (ou suspendu) ne reçoit pas de lien non plus : il ne
+        pourrait de toute façon pas se connecter.
         """
-        return User.objects.filter(email__iexact=self.validated_data["email"]).first()
+        return User.objects.filter(
+            email__iexact=self.validated_data["email"], is_active=True
+        ).first()
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):

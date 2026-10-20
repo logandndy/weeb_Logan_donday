@@ -278,6 +278,16 @@ class PasswordResetEmailTests(ThrottleResetMixin, APITestCase):
 
         self.assertEqual(len(mail.outbox), 0)
 
+    def test_aucun_email_pour_un_compte_pas_encore_valide(self):
+        make_user(email="attente@weeb.fr", active=False)
+
+        response = self.client.post(
+            "/api/auth/password-reset/", {"email": "attente@weeb.fr"}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(mail.outbox), 0)
+
 
 @tag("integration")
 class ThrottlingTests(ThrottleResetMixin, APITestCase):

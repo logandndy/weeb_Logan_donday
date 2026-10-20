@@ -27,16 +27,24 @@ class ArticleViewSet(viewsets.ModelViewSet):
         return ArticleDetailSerializer
 
     def get_queryset(self):
-        """Retourne les articles publiés, auxquels s'ajoutent les brouillons de l'utilisateur.
+        """Retourne les articles visibles selon l'action et l'utilisateur.
 
-        Un visiteur ne voit que les articles publiés. Un utilisateur connecté
-        voit en plus ses propres brouillons, afin de pouvoir les relire et les
-        modifier. Un administrateur voit tout.
+        - La liste publique (page Blog) ne montre que les articles publiés,
+          pour tout le monde : un brouillon n'a rien à faire dans le blog.
+        - La liste `?mine=true` (page Mon espace) montre tous les articles de
+          l'utilisateur connecté, brouillons compris.
+        - Pour un article précis, l'auteur voit aussi ses brouillons, afin de
+          pouvoir les relire et les modifier. Un administrateur voit tout.
         """
         # select_related : l'auteur est chargé dans la même requête SQL que
         # l'article, au lieu d'une requête par article de la liste.
         queryset = Article.objects.select_related("author")
         user = self.request.user
+
+        if self.action == "list":
+            if self.request.query_params.get("mine") == "true" and user.is_authenticated:
+                return queryset.filter(author=user)
+            return queryset.filter(is_published=True)
 
         if user.is_staff:
             return queryset
