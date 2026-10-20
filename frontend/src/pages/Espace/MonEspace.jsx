@@ -149,9 +149,9 @@ function MotDePasse() {
       <FormMessage type="success">{feedback}</FormMessage>
 
       <form onSubmit={handleSubmit} noValidate>
-        <FormField id="password-old" label="Mot de passe actuel *" {...field('old_password')} />
-        <FormField id="password-new" label="Nouveau mot de passe *" {...field('new_password')} />
-        <FormField id="password-confirm" label="Confirmer le nouveau *" {...field('new_password_confirm')} />
+        <FormField id="password-old" label="Actuel *" {...field('old_password')} />
+        <FormField id="password-new" label="Nouveau *" {...field('new_password')} />
+        <FormField id="password-confirm" label="Confirmation *" {...field('new_password_confirm')} />
         <button type="submit" className="btn-primary account-btn" disabled={isSubmitting}>
           {isSubmitting ? 'Modification...' : 'Changer le mot de passe'}
         </button>
@@ -187,7 +187,7 @@ function SuppressionCompte() {
       {isOpen ? (
         <form onSubmit={handleSubmit} noValidate>
           <FormMessage type="error">{error}</FormMessage>
-          <FormField id="delete-password" name="password" type="password" label="Confirmez avec votre mot de passe *"
+          <FormField id="delete-password" name="password" type="password" label="Votre mot de passe *"
             required value={values.password} error={fieldErrors.password} onChange={handleChange} />
           <div className="account-danger-actions">
             <button type="submit" className="btn-danger" disabled={isSubmitting}>

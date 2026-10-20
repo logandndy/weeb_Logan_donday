@@ -71,9 +71,9 @@ describe('<MonEspace>', () => {
     });
     renderPage();
 
-    remplir('Mot de passe actuel *', 'Ancien!2026');
-    remplir('Nouveau mot de passe *', 'Nouveau!2026');
-    remplir('Confirmer le nouveau *', 'Nouveau!2026');
+    remplir('Actuel *', 'Ancien!2026');
+    remplir('Nouveau *', 'Nouveau!2026');
+    remplir('Confirmation *', 'Nouveau!2026');
     fireEvent.click(screen.getByRole('button', { name: 'Changer le mot de passe' }));
 
     expect(await screen.findByText('Mot de passe modifié.')).toBeInTheDocument();
@@ -85,7 +85,7 @@ describe('<MonEspace>', () => {
     const { clearSession } = renderPage();
 
     fireEvent.click(screen.getByRole('button', { name: 'Supprimer mon compte' }));
-    remplir('Confirmez avec votre mot de passe *', 'MotDePasse!2026');
+    remplir('Votre mot de passe *', 'MotDePasse!2026');
     fireEvent.click(screen.getByRole('button', { name: 'Supprimer définitivement' }));
 
     expect(await screen.findByText('Page de connexion')).toBeInTheDocument();

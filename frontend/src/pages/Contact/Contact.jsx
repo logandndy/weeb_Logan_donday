@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { contactApi } from '../../services/api';
 import useForm from '../../hooks/useForm';
 import FormField from '../../components/FormField';
@@ -53,6 +54,10 @@ const Contact = () => {
           <button type="submit" className="btn-primary" disabled={isSubmitting}>
             {isSubmitting ? 'Envoi...' : 'Contact'}
           </button>
+          <p className="form-legal">
+            Vos informations servent uniquement à vous répondre et sont conservées 12 mois au plus.
+            Voir notre <Link to="/confidentialite">politique de confidentialité</Link>.
+          </p>
         </form>
       </div>
     </div>

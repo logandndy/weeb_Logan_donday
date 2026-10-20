@@ -109,13 +109,22 @@ const Footer = () => {
                   </button>
                 </form>
                 <FormMessage type="field">{fieldErrors.email ?? error}</FormMessage>
+                <p className="form-legal">
+                  Désinscription possible à tout moment.{' '}
+                  <Link to="/confidentialite">Confidentialité</Link>
+                </p>
               </>
             )}
           </div>
         </div>
       </div>
       <div className="footer-bottom">
-        <p>&copy; 2026 Weeb, Inc. All rights reserved.</p>
+        <p>
+          &copy; 2026 Weeb, Inc. All rights reserved. ·{' '}
+          <Link to="/confidentialite" className="footer-legal-link">
+            Confidentialité
+          </Link>
+        </p>
         <div className="social-links">
           {SOCIAL_LINKS.map((social) => (
             <a

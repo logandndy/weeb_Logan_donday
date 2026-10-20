@@ -51,6 +51,10 @@ const Signup = () => {
           <button type="submit" className="btn-primary signup-btn" disabled={isSubmitting}>
             {isSubmitting ? 'Création...' : 'Créer mon compte'}
           </button>
+          <p className="form-legal">
+            Vos informations servent uniquement à gérer votre compte. Voir notre{' '}
+            <Link to="/confidentialite">politique de confidentialité</Link>.
+          </p>
         </form>
 
         <div className="signup-links">
