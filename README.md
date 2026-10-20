@@ -74,7 +74,7 @@ React (Vercel) ──HTTPS/JSON + JWT──> Django REST (Render) ──> Postgr
 
 - **Front découpé par page**, pas par type de fichier : tout ce qui concerne une page est au même endroit.
 - **Un seul point d'accès à l'API** ([api.js](frontend/src/services/api.js)) : URL, token et erreurs gérés une fois.
-- **CSS écrit à la main** : la maquette impose une identité précise, pas de framework à contourner.
+- **CSS écrit à la main** : la maquette impose une identité précise, pas de framework à contourner. Toutes les valeurs (couleurs, arrondis, ombres, durées) sont des variables dans [theme.css](frontend/src/styles/theme.css), avec un seul système de boutons (`.btn` + `.btn-primary`, `.btn-outline`, `.btn-ghost`, `.btn-danger`).
 - **Back découpé en 3 apps** (une par domaine), chacune avec `models`, `serializers`, `views`, `urls`, `admin`, `tests/`.
 
 ## Bibliothèques
@@ -122,7 +122,10 @@ focus violet et label flottant sur les champs ; contour clavier
 **Hors maquette** : bande défilante des partenaires, menu burger animé,
 inscription, mot de passe oublié, pagination, brouillons, page 404, page active
 dans la navbar, page **Mon espace** (mes articles et brouillons, profil, mot de
-passe, suppression du compte), **vraie newsletter** et page **Confidentialité**.
+passe, suppression du compte), **vraie newsletter** et page **Confidentialité**,
+couverture générée pour les articles sans image (dégradé propre à chaque
+article), article **à la une**, temps de lecture, bouton pour **afficher le mot
+de passe**, fond avec halo et grain, pied de page toujours en bas.
 
 ## Authentification et sécurité
 
@@ -177,9 +180,9 @@ l'utilisateur a quitté la page entre-temps. Les erreurs Django
 
 | Niveau | Outil | Tests |
 |---|---|---|
-| Unitaire (back) | Django, `test_unit.py` | 74 |
+| Unitaire (back) | Django, `test_unit.py` | 76 |
 | Intégration (back) | Django + client HTTP, `test_integration.py` | 86 |
-| Front | Vitest + Testing Library | 33 |
+| Front | Vitest + Testing Library | 38 |
 | Bout en bout | Playwright (Chromium) | 10 parcours |
 
 ```bash
