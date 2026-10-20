@@ -90,6 +90,7 @@ LOCAL_APPS = [
     "apps.accounts",
     "apps.articles",
     "apps.contact",
+    "apps.newsletter",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -180,6 +181,7 @@ REST_FRAMEWORK = {
         "password_reset": "5/hour",
         "password_change": "5/hour",
         "contact": "10/hour",
+        "newsletter": "10/hour",
     },
 }
 

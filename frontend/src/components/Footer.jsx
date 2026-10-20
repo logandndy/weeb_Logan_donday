@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { newsletterApi } from '../services/api';
+import useForm from '../hooks/useForm';
+import FormMessage from './FormMessage';
 import '../styles/Footer.css';
 
 // Intitulés de la maquette, reliés aux pages qui existent déjà.
@@ -51,12 +54,16 @@ const SOCIAL_LINKS = [
 ];
 
 const Footer = () => {
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [confirmation, setConfirmation] = useState('');
+  const { values, error, fieldErrors, isSubmitting, handleChange, submit } = useForm({ email: '' });
 
-  /** La newsletter n'a pas encore de backend : on confirme sans recharger la page. */
+  /** Inscrit l'adresse à la newsletter : un email de bienvenue est envoyé. */
   function handleNewsletterSubmit(event) {
     event.preventDefault();
-    setIsSubscribed(true);
+    submit(async ({ email }) => {
+      const data = await newsletterApi.subscribe(email);
+      setConfirmation(data.detail);
+    });
   }
 
   return (
@@ -81,21 +88,28 @@ const Footer = () => {
             <p className="newsletter-desc">
               Le web en constante évolution, direct dans votre boîte mail.
             </p>
-            {isSubscribed ? (
+            {confirmation ? (
               <p className="newsletter-success" role="status">
-                Merci ! La newsletter ouvre bientôt, en attendant retrouvez nos articles sur le
-                blog.
+                {confirmation}
               </p>
             ) : (
-              <form className="newsletter-form" onSubmit={handleNewsletterSubmit}>
-                <input
-                  type="email"
-                  placeholder="Votre email"
-                  aria-label="Votre email"
-                  required
-                />
-                <button type="submit">Envoyer</button>
-              </form>
+              <>
+                <form className="newsletter-form" onSubmit={handleNewsletterSubmit} noValidate>
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Votre email"
+                    aria-label="Votre email"
+                    required
+                    value={values.email}
+                    onChange={handleChange}
+                  />
+                  <button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? '...' : 'Envoyer'}
+                  </button>
+                </form>
+                <FormMessage type="field">{fieldErrors.email ?? error}</FormMessage>
+              </>
             )}
           </div>
         </div>

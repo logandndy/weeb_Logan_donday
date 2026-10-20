@@ -174,6 +174,13 @@ export const articlesApi = {
   remove: (slug) => request(`/articles/${slug}/`, { method: 'DELETE' }),
 };
 
+/** Inscription et désinscription à la newsletter (pied de page). */
+export const newsletterApi = {
+  subscribe: (email) => request('/newsletter/', { method: 'POST', body: { email }, auth: false }),
+  unsubscribe: (token) =>
+    request('/newsletter/unsubscribe/', { method: 'POST', body: { token }, auth: false }),
+};
+
 /** Endpoint du formulaire de contact. */
 export const contactApi = {
   send: (payload) => request('/contact/', { method: 'POST', body: payload, auth: false }),

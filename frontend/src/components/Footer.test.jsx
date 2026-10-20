@@ -1,7 +1,12 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ApiError, newsletterApi } from '../services/api';
 import Footer from './Footer';
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 function renderFooter() {
   return render(
@@ -19,7 +24,10 @@ describe('<Footer>', () => {
     expect(screen.getByRole('link', { name: 'Help Center' })).toHaveAttribute('href', '/contact');
   });
 
-  it('confirme l’inscription à la newsletter sans recharger la page', () => {
+  it('inscrit vraiment l’adresse à la newsletter', async () => {
+    const subscribe = vi
+      .spyOn(newsletterApi, 'subscribe')
+      .mockResolvedValue({ detail: 'Merci ! Vous recevrez nos prochains articles par email.' });
     renderFooter();
 
     fireEvent.change(screen.getByLabelText('Votre email'), {
@@ -27,6 +35,21 @@ describe('<Footer>', () => {
     });
     fireEvent.submit(screen.getByRole('button', { name: 'Envoyer' }));
 
-    expect(screen.getByRole('status')).toHaveTextContent('Merci');
+    expect(await screen.findByRole('status')).toHaveTextContent('Merci');
+    expect(subscribe).toHaveBeenCalledWith('ada@weeb.fr');
+  });
+
+  it('affiche l’erreur si l’adresse est refusée', async () => {
+    vi.spyOn(newsletterApi, 'subscribe').mockRejectedValue(
+      new ApiError('Saisissez une adresse e-mail valide.', {
+        status: 400,
+        fieldErrors: { email: 'Saisissez une adresse e-mail valide.' },
+      }),
+    );
+    renderFooter();
+
+    fireEvent.submit(screen.getByRole('button', { name: 'Envoyer' }));
+
+    expect(await screen.findByText('Saisissez une adresse e-mail valide.')).toBeInTheDocument();
   });
 });
