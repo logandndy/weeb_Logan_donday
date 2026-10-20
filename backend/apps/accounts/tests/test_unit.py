@@ -6,6 +6,7 @@ casse, on sait tout de suite quelle fonction est en cause.
 """
 
 from io import StringIO
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
@@ -16,6 +17,11 @@ from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import serializers
 
+from apps.accounts.emails import (
+    notify_admins_new_account,
+    send_account_validated_email,
+    send_password_reset_email,
+)
 from apps.accounts.serializers import (
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
@@ -23,7 +29,6 @@ from apps.accounts.serializers import (
     build_password_reset_payload,
     check_passwords_match,
 )
-from apps.accounts.views import send_password_reset_email
 from apps.articles.models import Article
 from weeb_api.tests.factories import VALID_PASSWORD, make_user
 
@@ -330,3 +335,40 @@ class SeedE2ECommandTests(TestCase):
             call_command("seed_e2e", stdout=StringIO())
 
         self.assertEqual(User.objects.count(), 0)
+
+
+@tag("unit")
+class AccountEmailsTests(TestCase):
+    """Emails de la vie d'un compte : nouveau compte (aux admins) et compte validé (à l'utilisateur)."""
+
+    def setUp(self):
+        self.user = make_user("bob@weeb.fr", active=False, first_name="Bob")
+
+    def test_les_admins_actifs_sont_prevenus_d_un_nouveau_compte(self):
+        make_user("admin@weeb.fr", staff=True)
+        make_user("ancien-admin@weeb.fr", staff=True, active=False)
+        make_user("membre@weeb.fr")
+
+        notify_admins_new_account(self.user)
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["admin@weeb.fr"])
+        self.assertIn("bob@weeb.fr", mail.outbox[0].body)
+
+    def test_aucun_email_s_il_n_y_a_pas_d_admin(self):
+        notify_admins_new_account(self.user)
+
+        self.assertEqual(len(mail.outbox), 0)
+
+    @override_settings(FRONTEND_URL="https://weeb.exemple.fr")
+    def test_l_utilisateur_valide_recoit_le_lien_de_connexion(self):
+        send_account_validated_email(self.user)
+
+        self.assertEqual(mail.outbox[0].to, ["bob@weeb.fr"])
+        self.assertIn("Bonjour Bob", mail.outbox[0].body)
+        self.assertIn("https://weeb.exemple.fr/login", mail.outbox[0].body)
+
+    def test_une_panne_d_email_ne_fait_pas_echouer_l_appelant(self):
+        with patch("apps.accounts.emails.send_mail", side_effect=ConnectionError("Brevo injoignable")):
+            with self.assertLogs("apps.accounts.emails", level="ERROR"):
+                send_account_validated_email(self.user)

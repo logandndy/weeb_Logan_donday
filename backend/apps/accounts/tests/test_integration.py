@@ -14,7 +14,13 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.serializers import build_password_reset_payload
-from weeb_api.tests.factories import VALID_PASSWORD, ThrottleResetMixin, auth_client, make_user
+from weeb_api.tests.factories import (
+    VALID_PASSWORD,
+    ThrottleResetMixin,
+    auth_client,
+    make_admin,
+    make_user,
+)
 
 User = get_user_model()
 
@@ -332,3 +338,42 @@ class ThrottlingTests(ThrottleResetMixin, APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+@tag("integration")
+class ValidationDesComptesTests(ThrottleResetMixin, APITestCase):
+    """Inscription et validation par l'admin : chaque étape prévient la bonne personne."""
+
+    def setUp(self):
+        super().setUp()
+        self.admin = make_admin()
+
+    def test_l_inscription_previent_les_admins(self):
+        self.client.post(
+            "/api/auth/signup/",
+            {
+                "first_name": "Bob",
+                "last_name": "Martin",
+                "email": "bob@weeb.fr",
+                "password": VALID_PASSWORD,
+                "password_confirm": VALID_PASSWORD,
+            },
+            format="json",
+        )
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.admin.email])
+
+    def test_l_action_valider_previent_seulement_les_comptes_en_attente(self):
+        en_attente = make_user("attente@weeb.fr", active=False)
+        deja_actif = make_user("actif@weeb.fr")
+        self.client.force_login(self.admin)
+
+        self.client.post(
+            "/admin/accounts/user/",
+            {"action": "valider_comptes", "_selected_action": [en_attente.pk, deja_actif.pk]},
+        )
+
+        en_attente.refresh_from_db()
+        self.assertTrue(en_attente.is_active)
+        self.assertEqual([m.to for m in mail.outbox], [["attente@weeb.fr"]])
