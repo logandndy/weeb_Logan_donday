@@ -54,7 +54,18 @@
   transition:
     background-color var(--duree) ease,
     border-color var(--duree) ease,
-    color var(--duree) ease;
+    color var(--duree) ease,
+    box-shadow var(--duree) ease,
+    transform var(--duree) ease;
+}
+
+/* Au survol, le bouton se soulève légèrement. Au clic, il revient en place. */
+.btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .btn:disabled {
@@ -69,6 +80,7 @@
 
 .btn-primary:hover:not(:disabled) {
   background-color: var(--violet-fonce);
+  box-shadow: var(--ombre-violette);
 }
 
 .btn-outline {

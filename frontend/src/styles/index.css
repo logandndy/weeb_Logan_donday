@@ -1,15 +1,72 @@
+/* Fond nuit avec deux halos violets très doux : de la profondeur sans
+   changer de couleur. Les halos restent fixes pendant le défilement. */
 body {
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
-  background-color: var(--fond);
+  background:
+    radial-gradient(60rem 40rem at 90% -10%, rgba(168, 85, 247, 0.14), transparent 60%),
+    radial-gradient(50rem 35rem at -15% 45%, rgba(147, 51, 234, 0.08), transparent 60%),
+    var(--fond);
+  background-attachment: fixed;
   color: var(--blanc);
   font-family: "Inter", sans-serif;
   overflow-x: hidden;
 }
 
+/* Grain très léger par-dessus le fond, sous le contenu : casse l'effet
+   « noir plat » des grands aplats sombres. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
 * {
   box-sizing: border-box;
+}
+
+/* Mise en page en colonne : le contenu prend toute la place disponible, le
+   pied de page reste donc en bas même sur une page courte (article, 404). */
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main {
+  flex: 1;
+}
+
+/* Arrivée sur une page : léger fondu, pour que la navigation paraisse fluide. */
+.app-main > * {
+  animation: page-in 0.4s ease both;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Réglage système « réduire les animations » : tout mouvement est coupé. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Navigation au clavier : contour visible sur tout élément atteint avec Tab.
