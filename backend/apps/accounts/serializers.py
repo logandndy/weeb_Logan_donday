@@ -12,6 +12,8 @@ from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+from .sessions import revoke_all_sessions
+
 User = get_user_model()
 
 
@@ -146,6 +148,8 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         user = self.validated_data["user"]
         user.set_password(self.validated_data["new_password"])
         user.save(update_fields=["password"])
+        # Si quelqu'un d'autre avait accès au compte, il est déconnecté.
+        revoke_all_sessions(user)
         return user
 
 

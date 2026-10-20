@@ -80,6 +80,9 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
+    # Liste noire des tokens : une déconnexion ou un changement de mot de passe
+    # rend vraiment inutilisables les tokens de rafraîchissement déjà délivrés.
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
 ]
 
@@ -183,6 +186,9 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
+    # Sans liste noire, l'ancien token restait valable après la rotation :
+    # la rotation ne protégeait de rien.
+    "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 

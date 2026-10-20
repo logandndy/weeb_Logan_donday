@@ -377,3 +377,48 @@ class ValidationDesComptesTests(ThrottleResetMixin, APITestCase):
         en_attente.refresh_from_db()
         self.assertTrue(en_attente.is_active)
         self.assertEqual([m.to for m in mail.outbox], [["attente@weeb.fr"]])
+
+
+@tag("integration")
+class SessionsTests(ThrottleResetMixin, APITestCase):
+    """Un token de rafraîchissement révoqué ne doit plus jamais donner accès au compte."""
+
+    def setUp(self):
+        super().setUp()
+        self.user = make_user("ada@weeb.fr")
+        self.refresh = self.client.post(
+            "/api/auth/login/", {"email": "ada@weeb.fr", "password": VALID_PASSWORD}, format="json"
+        ).data["refresh"]
+
+    def rafraichir(self, refresh):
+        return self.client.post("/api/auth/refresh/", {"refresh": refresh}, format="json")
+
+    def test_la_deconnexion_revoque_le_token(self):
+        response = self.client.post("/api/auth/logout/", {"refresh": self.refresh}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.rafraichir(self.refresh).status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_un_token_deja_utilise_ne_resert_pas(self):
+        """Rotation : chaque renouvellement donne un nouveau token et grille l'ancien."""
+        self.assertEqual(self.rafraichir(self.refresh).status_code, status.HTTP_200_OK)
+        self.assertEqual(self.rafraichir(self.refresh).status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_reinitialiser_le_mot_de_passe_deconnecte_partout(self):
+        payload = build_password_reset_payload(self.user)
+        self.client.post(
+            "/api/auth/password-reset/confirm/",
+            {**payload, "new_password": NOUVEAU_MDP, "new_password_confirm": NOUVEAU_MDP},
+            format="json",
+        )
+
+        self.assertEqual(self.rafraichir(self.refresh).status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_suspendre_un_compte_coupe_ses_sessions(self):
+        self.client.force_login(make_admin())
+        self.client.post(
+            "/admin/accounts/user/",
+            {"action": "suspendre_comptes", "_selected_action": [self.user.pk]},
+        )
+
+        self.assertEqual(self.rafraichir(self.refresh).status_code, status.HTTP_401_UNAUTHORIZED)

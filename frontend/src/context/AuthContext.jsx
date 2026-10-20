@@ -45,6 +45,12 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(() => {
+    // Le serveur met le token de rafraîchissement sur liste noire. On n'attend
+    // pas sa réponse : même hors ligne, la session locale est fermée.
+    const refresh = tokenStorage.getRefresh();
+    if (refresh) {
+      authApi.logout(refresh).catch(() => {});
+    }
     tokenStorage.clear();
     setUser(null);
   }, []);

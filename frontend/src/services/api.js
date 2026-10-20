@@ -146,6 +146,8 @@ export async function request(path, { method = 'GET', body, auth = true } = {}) 
 export const authApi = {
   signup: (payload) => request('/auth/signup/', { method: 'POST', body: payload, auth: false }),
   login: (payload) => request('/auth/login/', { method: 'POST', body: payload, auth: false }),
+  logout: (refresh) =>
+    request('/auth/logout/', { method: 'POST', body: { refresh }, auth: false }),
   me: () => request('/auth/me/'),
   requestPasswordReset: (email) =>
     request('/auth/password-reset/', { method: 'POST', body: { email }, auth: false }),

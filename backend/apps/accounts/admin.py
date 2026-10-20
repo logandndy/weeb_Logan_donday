@@ -9,6 +9,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 from .emails import send_account_validated_email
 from .models import User
+from .sessions import revoke_all_sessions
 
 
 @admin.register(User)
@@ -68,6 +69,8 @@ class UserAdmin(BaseUserAdmin):
 
     @admin.action(description="Suspendre les comptes sélectionnés")
     def suspendre_comptes(self, request, queryset):
-        """Désactive en masse les comptes sélectionnés."""
+        """Désactive les comptes sélectionnés et coupe leurs sessions en cours."""
+        for user in queryset:
+            revoke_all_sessions(user)
         updated = queryset.update(is_active=False)
         self.message_user(request, f"{updated} compte(s) suspendu(s).")
