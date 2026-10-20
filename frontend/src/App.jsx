@@ -10,6 +10,7 @@ import Signup from './pages/Inscription/Signup';
 import Blog from './pages/Blog/Blog';
 import ArticleDetail from './pages/Blog/ArticleDetail';
 import ArticleForm from './pages/Blog/ArticleForm';
+import MonEspace from './pages/Espace/MonEspace';
 import NotFound from './pages/NotFound';
 
 // Composants communs à toutes les pages
@@ -52,6 +53,15 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ArticleForm />
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/mon-espace"
+                element={
+                  <ProtectedRoute>
+                    <MonEspace />
                   </ProtectedRoute>
                 }
               />

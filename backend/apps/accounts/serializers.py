@@ -6,6 +6,7 @@ réinitialisation de mot de passe) et le formatage des données sortantes.
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
@@ -28,7 +29,11 @@ def check_passwords_match(password, confirmation, field):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """Représentation publique d'un utilisateur, renvoyée par `/api/auth/me/`."""
+    """Profil de l'utilisateur connecté (`/api/auth/me/`).
+
+    Seuls le prénom et le nom sont modifiables depuis la page Mon espace.
+    L'email (identifiant de connexion) et les droits ne changent jamais ici.
+    """
 
     full_name = serializers.CharField(source="get_full_name", read_only=True)
 
@@ -44,7 +49,7 @@ class UserSerializer(serializers.ModelSerializer):
             "is_staff",
             "date_joined",
         ]
-        read_only_fields = fields
+        read_only_fields = ["id", "email", "is_active", "is_staff", "date_joined"]
 
 
 class SignupSerializer(serializers.ModelSerializer):
@@ -159,3 +164,40 @@ def build_password_reset_payload(user):
         "uid": urlsafe_base64_encode(force_bytes(user.pk)),
         "token": default_token_generator.make_token(user),
     }
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    """Changement de mot de passe d'un utilisateur connecté (page Mon espace).
+
+    L'ancien mot de passe est redemandé : un token volé ne suffit pas pour
+    prendre le contrôle du compte.
+    """
+
+    old_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
+    new_password_confirm = serializers.CharField(write_only=True)
+
+    def validate_old_password(self, value):
+        """Vérifie que l'utilisateur connaît bien son mot de passe actuel."""
+        if not self.context["request"].user.check_password(value):
+            raise serializers.ValidationError("Mot de passe actuel incorrect.")
+        return value
+
+    def validate(self, attrs):
+        """Vérifie la confirmation et la solidité du nouveau mot de passe."""
+        check_passwords_match(attrs["new_password"], attrs["new_password_confirm"], "new_password_confirm")
+        # L'utilisateur est passé aux validateurs : un mot de passe trop proche
+        # de son nom ou de son email est refusé.
+        try:
+            validate_password(attrs["new_password"], self.context["request"].user)
+        except DjangoValidationError as error:
+            raise serializers.ValidationError({"new_password": list(error.messages)})
+        return attrs
+
+    def save(self):
+        """Enregistre le nouveau mot de passe et déconnecte tous les appareils."""
+        user = self.context["request"].user
+        user.set_password(self.validated_data["new_password"])
+        user.save(update_fields=["password"])
+        revoke_all_sessions(user)
+        return user

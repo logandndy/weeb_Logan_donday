@@ -1,6 +1,6 @@
 /** Parcours 3 et 4 : un auteur connecté publie, modifie puis supprime un article. */
 import { expect, test } from '@playwright/test';
-import { AUTEUR, AUTH_FILE } from './donnees.js';
+import { AUTEUR, AUTH_FILE, BROUILLON } from './donnees.js';
 
 // Session enregistrée par auth.setup.js : pas de nouvelle connexion ici.
 test.use({ storageState: AUTH_FILE });
@@ -60,5 +60,25 @@ test.describe('Auteur connecté', () => {
     await expect(page).toHaveURL(/\/blog$/);
     await expect(page.locator('article.article-card').first()).toBeVisible();
     await expect(page.locator('article.article-card h2', { hasText: nouveauTitre })).toHaveCount(0);
+  });
+
+  test('retrouve son brouillon dans Mon espace et peut le rouvrir', async ({ page }) => {
+    // Bug corrigé : avant, un auteur qui enregistrait un brouillon ne pouvait plus jamais le revoir.
+    await page.goto('/');
+    await page.locator('.navbar-container .nav-user').click();
+    await expect(page).toHaveURL(/\/mon-espace$/);
+
+    const carte = page.locator('article.article-card', { hasText: BROUILLON.titre });
+    await expect(carte).toContainText('Brouillon');
+    await carte.click();
+
+    await expect(page).toHaveURL(new RegExp(`/blog/${BROUILLON.slug}$`));
+    await expect(page.locator('h1')).toHaveText(BROUILLON.titre);
+    await expect(page.getByRole('link', { name: 'Modifier' })).toBeVisible();
+
+    // Le blog public, lui, ne montre jamais de brouillon, même à son auteur.
+    await page.goto('/blog');
+    await expect(page.locator('article.article-card').first()).toBeVisible();
+    await expect(page.locator('article.article-card', { hasText: BROUILLON.titre })).toHaveCount(0);
   });
 });

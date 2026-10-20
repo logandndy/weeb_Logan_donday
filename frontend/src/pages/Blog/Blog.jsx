@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { articlesApi } from '../../services/api';
 import useAuth from '../../hooks/useAuth';
 import useFetch from '../../hooks/useFetch';
+import Pagination from '../../components/Pagination';
 import ArticleCard from './ArticleCard';
 import '../../styles/Blog.css';
 
@@ -51,17 +52,7 @@ const Blog = () => {
         ))}
       </div>
 
-      {(page > 1 || hasNextPage) && (
-        <nav className="blog-pagination" aria-label="Pagination des articles">
-          <button type="button" onClick={() => setPage(page - 1)} disabled={page === 1}>
-            &larr; Précédent
-          </button>
-          <span>Page {page}</span>
-          <button type="button" onClick={() => setPage(page + 1)} disabled={!hasNextPage}>
-            Suivant &rarr;
-          </button>
-        </nav>
-      )}
+      <Pagination page={page} hasNextPage={hasNextPage} onChange={setPage} label="Pagination des articles" />
     </div>
   );
 };

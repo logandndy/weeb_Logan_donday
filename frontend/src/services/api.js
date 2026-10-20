@@ -149,6 +149,9 @@ export const authApi = {
   logout: (refresh) =>
     request('/auth/logout/', { method: 'POST', body: { refresh }, auth: false }),
   me: () => request('/auth/me/'),
+  updateMe: (payload) => request('/auth/me/', { method: 'PATCH', body: payload }),
+  deleteMe: (password) => request('/auth/me/', { method: 'DELETE', body: { password } }),
+  changePassword: (payload) => request('/auth/password-change/', { method: 'POST', body: payload }),
   requestPasswordReset: (email) =>
     request('/auth/password-reset/', { method: 'POST', body: { email }, auth: false }),
   confirmPasswordReset: (payload) =>

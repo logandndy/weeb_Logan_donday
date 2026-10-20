@@ -133,7 +133,8 @@ class ArticleDetailSerializerTests(SimpleTestCase):
 class ArticleListSerializerTests(SimpleTestCase):
     """La liste n'envoie pas le contenu complet, pour garder une réponse légère."""
 
-    def test_liste_sans_contenu_ni_statut(self):
+    def test_liste_sans_contenu_mais_avec_le_statut(self):
+        """Le statut sert au badge « Brouillon » de la page Mon espace."""
         article = Article(
             id=1,
             title="Titre",
@@ -145,7 +146,7 @@ class ArticleListSerializerTests(SimpleTestCase):
         data = ArticleListSerializer(article).data
 
         self.assertNotIn("content", data)
-        self.assertNotIn("is_published", data)
+        self.assertIn("is_published", data)
         self.assertEqual(data["author"], {"id": 1, "full_name": "Ada Lovelace"})
 
 
