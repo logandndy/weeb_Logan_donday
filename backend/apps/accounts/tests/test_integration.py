@@ -166,7 +166,7 @@ class LoginTests(ThrottleResetMixin, APITestCase):
 
 @tag("integration")
 class TokenTests(ThrottleResetMixin, APITestCase):
-    """Renouvellement (/refresh/) et vérification (/verify/) des tokens JWT."""
+    """Renouvellement des tokens JWT (/refresh/)."""
 
     def setUp(self):
         super().setUp()
@@ -193,13 +193,6 @@ class TokenTests(ThrottleResetMixin, APITestCase):
         response = self.client.post("/api/auth/refresh/", {"refresh": "invalide"}, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
-    def test_verify_accepte_un_token_valide_et_refuse_un_faux(self):
-        valide = self.client.post("/api/auth/verify/", {"token": self.tokens["access"]}, format="json")
-        faux = self.client.post("/api/auth/verify/", {"token": "faux"}, format="json")
-
-        self.assertEqual(valide.status_code, status.HTTP_200_OK)
-        self.assertEqual(faux.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 @tag("integration")

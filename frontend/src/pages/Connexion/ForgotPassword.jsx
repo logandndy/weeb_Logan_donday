@@ -1,29 +1,22 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { authApi } from '../../services/api';
+import useForm from '../../hooks/useForm';
+import FormField from '../../components/FormField';
 import FormMessage from '../../components/FormMessage';
 
 /** Demande d'un lien de réinitialisation de mot de passe. */
 const ForgotPassword = () => {
-  const [email, setEmail] = useState('');
   const [feedback, setFeedback] = useState('');
-  const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { values, error, isSubmitting, handleChange, submit } = useForm({ email: '' });
 
-  async function handleSubmit(event) {
+  function handleSubmit(event) {
     event.preventDefault();
-    setIsSubmitting(true);
-    setError('');
     setFeedback('');
-
-    try {
+    submit(async ({ email }) => {
       const data = await authApi.requestPasswordReset(email);
       setFeedback(data.detail);
-    } catch (apiError) {
-      setError(apiError.message);
-    } finally {
-      setIsSubmitting(false);
-    }
+    });
   }
 
   return (
@@ -39,17 +32,8 @@ const ForgotPassword = () => {
         <FormMessage type="success">{feedback}</FormMessage>
 
         <form className="login-form" onSubmit={handleSubmit} noValidate>
-          <div className="input-group">
-            <input
-              type="email"
-              id="forgot-email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-              placeholder=" "
-            />
-            <label htmlFor="forgot-email">Email *</label>
-          </div>
+          <FormField id="forgot-email" name="email" type="email" label="Email *" required
+            value={values.email} onChange={handleChange} />
 
           <button type="submit" className="btn-primary login-btn" disabled={isSubmitting}>
             {isSubmitting ? 'Envoi...' : 'Envoyer le lien'}

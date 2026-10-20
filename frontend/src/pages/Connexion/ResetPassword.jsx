@@ -1,6 +1,7 @@
-import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { authApi } from '../../services/api';
+import useForm from '../../hooks/useForm';
+import FormField from '../../components/FormField';
 import FormMessage from '../../components/FormMessage';
 
 /**
@@ -12,38 +13,21 @@ import FormMessage from '../../components/FormMessage';
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-
   const uid = searchParams.get('uid');
   const token = searchParams.get('token');
+  const { values, fieldErrors, error, isSubmitting, handleChange, submit } = useForm({
+    new_password: '',
+    new_password_confirm: '',
+  });
 
-  const [form, setForm] = useState({ new_password: '', new_password_confirm: '' });
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  function handleChange(event) {
-    const { name, value } = event.target;
-
-    setForm((previous) => ({ ...previous, [name]: value }));
-    setFieldErrors((previous) => ({ ...previous, [name]: undefined }));
-  }
-
-  async function handleSubmit(event) {
+  function handleSubmit(event) {
     event.preventDefault();
-    setIsSubmitting(true);
-    setError('');
-    setFieldErrors({});
-
-    try {
+    submit(async (form) => {
       await authApi.confirmPasswordReset({ uid, token, ...form });
       navigate('/login', {
         state: { message: 'Mot de passe réinitialisé. Vous pouvez vous connecter.' },
       });
-    } catch (apiError) {
-      setError(apiError.message);
-      setFieldErrors(apiError.fieldErrors ?? {});
-      setIsSubmitting(false);
-    }
+    });
   }
 
   // Sans les deux paramètres, le lien a été tronqué ou saisi à la main.
@@ -72,33 +56,11 @@ const ResetPassword = () => {
         <FormMessage type="error">{error}</FormMessage>
 
         <form className="login-form" onSubmit={handleSubmit} noValidate>
-          <div className="input-group">
-            <input
-              type="password"
-              id="reset-password"
-              name="new_password"
-              value={form.new_password}
-              onChange={handleChange}
-              required
-              placeholder=" "
-            />
-            <label htmlFor="reset-password">Nouveau mot de passe *</label>
-            <FormMessage type="field">{fieldErrors.new_password}</FormMessage>
-          </div>
-
-          <div className="input-group">
-            <input
-              type="password"
-              id="reset-password-confirm"
-              name="new_password_confirm"
-              value={form.new_password_confirm}
-              onChange={handleChange}
-              required
-              placeholder=" "
-            />
-            <label htmlFor="reset-password-confirm">Confirmer le mot de passe *</label>
-            <FormMessage type="field">{fieldErrors.new_password_confirm}</FormMessage>
-          </div>
+          <FormField id="reset-password" name="new_password" type="password" label="Nouveau mot de passe *"
+            required value={values.new_password} error={fieldErrors.new_password} onChange={handleChange} />
+          <FormField id="reset-password-confirm" name="new_password_confirm" type="password"
+            label="Confirmer le mot de passe *" required value={values.new_password_confirm}
+            error={fieldErrors.new_password_confirm} onChange={handleChange} />
 
           <button type="submit" className="btn-primary login-btn" disabled={isSubmitting}>
             {isSubmitting ? 'Enregistrement...' : 'Réinitialiser'}

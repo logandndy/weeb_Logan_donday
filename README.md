@@ -107,7 +107,7 @@ React (Vercel) ──HTTPS/JSON + JWT──> Django REST (Render) ──> Postgr
 | `/login` · `/signup` | public | `POST /auth/login/` · `/auth/signup/` |
 | `/mot-de-passe-oublie` · `/reset-password` | public | `POST /auth/password-reset/` · `/confirm/` |
 
-Autres routes API : `/auth/me/`, `/auth/refresh/`, `/auth/verify/`, `/health/`
+Autres routes API : `/auth/me/`, `/auth/refresh/`, `/auth/logout/`, `/health/`
 (API + base), `/ping/` (API seule, pour les sondes fréquentes).
 
 **Responsive** : points de rupture à 1150, 1024 (tablette), 992, 768 (menu
