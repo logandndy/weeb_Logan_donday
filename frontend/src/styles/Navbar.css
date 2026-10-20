@@ -14,7 +14,7 @@
   align-items: center;
   background-color: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
-  border-radius: 20px;
+  border-radius: var(--rayon-xl);
   padding: 0 24px;
   height: 70px;
   width: 90%;
@@ -31,9 +31,9 @@
 .logo-link {
   font-size: 2.5rem;
   font-weight: bold;
-  color: #ffffff;
+  color: var(--blanc);
   text-decoration: none;
-  transition: color 0.3s ease;
+  transition: color var(--duree) ease;
 }
 
 .nav-links {
@@ -46,24 +46,30 @@
 .login-link {
   text-decoration: none;
   margin-right: 25px;
-  color: #b3b3b3;
+  color: var(--texte-doux);
   font-size: 0.9rem;
   font-weight: 500;
-  transition: color 0.3s ease;
+  transition: color var(--duree) ease;
 }
 
 .nav-links a:hover,
 .login-link:hover {
-  color: #ffffff; /* Devient blanc au hover */
+  color: var(--blanc); /* Devient blanc au hover */
 }
 
 /* Page en cours */
 .nav-links a.active {
-  color: #ffffff;
+  color: var(--blanc);
   text-decoration: underline;
-  text-decoration-color: #a855f7;
+  text-decoration-color: var(--violet);
   text-decoration-thickness: 2px;
   text-underline-offset: 6px;
+}
+
+/* Bouton S'inscrire / Déconnexion : plus compact que les boutons de page. */
+.join-btn {
+  padding: 10px 22px;
+  font-size: 0.9rem;
 }
 
 .nav-right-group {
@@ -72,46 +78,23 @@
   gap: 16px;
 }
 
-/* Prénom de l'utilisateur connecté, affiché avant le bouton de déconnexion. */
 /* Prénom de l'utilisateur connecté : lien vers la page Mon espace. */
 .nav-user {
-  color: #a855f7;
+  color: var(--violet);
   font-size: 0.9rem;
   font-weight: 600;
   margin-right: 16px;
   text-decoration: none;
-  transition: color 0.3s ease;
+  transition: color var(--duree) ease;
 }
 
 .nav-user:hover,
 .nav-user.active {
-  color: #c084fc;
+  color: var(--violet-clair);
   text-decoration: underline;
   text-underline-offset: 4px;
 }
 
-/* Bouton Join Now. Sert aussi de bouton de déconnexion : les règles ci-dessous
-   neutralisent les styles par défaut de <button>. */
-.join-btn {
-  text-decoration: none;
-  background-color: #8a2be2;
-  color: #ffffff;
-  border: none;
-  font-family: inherit;
-  cursor: pointer;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  transition:
-    background 0.3s ease,
-    transform 0.2s;
-}
-
-.join-btn:hover {
-  background-color: #a855f7;
-  transform: translateY(-1px);
-}
 
 /* BURGER MOBILE */
 .burger-menu {
@@ -120,18 +103,18 @@
   justify-content: center;
   align-items: center;
   gap: 4px;
-  background-color: #8a2be2;
+  background-color: var(--violet-fonce);
   border: none;
   width: 40px;
   height: 40px;
-  border-radius: 8px;
+  border-radius: var(--rayon);
   cursor: pointer;
 }
 
 .bar {
   width: 20px;
   height: 2px;
-  background-color: white;
+  background-color: var(--blanc);
 }
 
 /*  Menu déroulant */
@@ -142,47 +125,28 @@
   width: 220px;
   background: #0a0b1e;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 15px;
+  border-radius: var(--rayon-xl);
   display: flex;
   flex-direction: column;
   padding: 20px;
   gap: 15px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--ombre);
 }
 
 .mobile-menu a {
-  color: white;
+  color: var(--blanc);
   text-decoration: none;
   font-size: 1rem;
   padding: 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  transition: color 0.3s ease;
+  transition: color var(--duree) ease;
 }
 
 .mobile-menu a:hover,
 .mobile-menu a.active {
-  color: #a855f7;
+  color: var(--violet);
 }
 
-/* Dernier élément du menu, mis en avant : inscription ou déconnexion. */
-.join-btn-mobile {
-  background-color: #8a2be2;
-  color: #ffffff;
-  border: none;
-  border-radius: 8px;
-  font-family: inherit;
-  font-size: 1rem;
-  font-weight: 600;
-  text-align: center;
-  padding: 12px;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-
-.join-btn-mobile:hover {
-  background-color: #a855f7;
-  color: #ffffff;
-}
 
 /* RESPONSIVE */
 @media (max-width: 768px) {

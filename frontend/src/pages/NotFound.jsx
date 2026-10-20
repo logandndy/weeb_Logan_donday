@@ -9,7 +9,7 @@ const NotFound = () => {
       <p className="not-found-text">
         Le lien est peut-être erroné, ou la page a été déplacée.
       </p>
-      <Link to="/" className="btn-primary">
+      <Link to="/" className="btn btn-primary">
         Retour à l&apos;accueil
       </Link>
     </div>

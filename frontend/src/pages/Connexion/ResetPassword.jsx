@@ -40,7 +40,7 @@ const ResetPassword = () => {
             Ce lien de réinitialisation est incomplet. Relancez une demande depuis la page mot de
             passe oublié.
           </p>
-          <Link to="/mot-de-passe-oublie" className="btn-primary login-btn">
+          <Link to="/mot-de-passe-oublie" className="btn btn-primary btn-block">
             Nouvelle demande
           </Link>
         </div>
@@ -62,7 +62,7 @@ const ResetPassword = () => {
             label="Confirmer le mot de passe *" required value={values.new_password_confirm}
             error={fieldErrors.new_password_confirm} onChange={handleChange} />
 
-          <button type="submit" className="btn-primary login-btn" disabled={isSubmitting}>
+          <button type="submit" className="btn btn-primary btn-block" disabled={isSubmitting}>
             {isSubmitting ? 'Enregistrement...' : 'Réinitialiser'}
           </button>
         </form>

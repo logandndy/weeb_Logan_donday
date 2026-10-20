@@ -7,16 +7,16 @@
 
 .legal-page .article-content h2 {
   font-size: 1.5rem;
-  color: #ffffff;
+  color: var(--blanc);
   margin: 50px 0 15px;
 }
 
 .legal-page .article-content a {
-  color: #a855f7;
+  color: var(--violet);
 }
 
 .legal-list {
-  color: #d1d5db;
+  color: var(--texte-clair);
   line-height: 1.8;
   padding-left: 20px;
 }
@@ -38,21 +38,21 @@
 .legal-table td {
   text-align: left;
   padding: 14px 16px;
-  border-bottom: 1px solid rgba(168, 85, 247, 0.25);
+  border-bottom: 1px solid var(--violet-halo);
   vertical-align: top;
 }
 
 .legal-table thead th {
-  color: #a855f7;
+  color: var(--violet);
   font-size: 0.8rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .legal-table tbody th {
-  color: #ffffff;
+  color: var(--blanc);
 }
 
 .legal-table td {
-  color: #d1d5db;
+  color: var(--texte-clair);
 }

@@ -51,7 +51,7 @@ const Contact = () => {
 
           <FormField id="message" label="Message *" multiline rows="4" className="full-width" {...field('message')} />
 
-          <button type="submit" className="btn-primary" disabled={isSubmitting}>
+          <button type="submit" className="btn btn-primary contact-submit" disabled={isSubmitting}>
             {isSubmitting ? 'Envoi...' : 'Contact'}
           </button>
           <p className="form-legal">

@@ -1,5 +1,5 @@
 .footer {
-  background-color: #ffffff;
+  background-color: var(--blanc);
   color: #1f2937;
   padding: 60px 5% 20px;
 }
@@ -29,7 +29,7 @@
 
 .footer-column h3 {
   font-size: 0.85rem;
-  color: #9ca3af;
+  color: var(--texte-doux);
   text-transform: uppercase;
   margin-bottom: 20px;
   letter-spacing: 1px;
@@ -37,14 +37,14 @@
 
 .footer-column a {
   display: block;
-  color: #4b5563;
+  color: var(--gris-bord);
   text-decoration: none;
   margin-bottom: 12px;
   font-size: 0.95rem;
 }
 
 .footer-column a:hover {
-  color: #a855f7;
+  color: var(--violet);
 }
 
 .footer-bottom {
@@ -87,40 +87,40 @@
 .newsletter-form input {
   flex: 1;
   padding: 10px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  border: 1px solid var(--texte-clair);
+  border-radius: var(--rayon-s);
   background-color: #f9fafb;
   color: #1f2937;
   outline: none;
   font-size: 0.9rem;
-  transition: border-color 0.3s ease;
+  transition: border-color var(--duree) ease;
 }
 
 .newsletter-form input:focus {
-  border-color: #a855f7;
+  border-color: var(--violet);
 }
 
 .newsletter-form button {
-  background-color: #a855f7;
-  color: #ffffff;
+  background-color: var(--violet);
+  color: var(--blanc);
   border: none;
   padding: 0 16px;
-  border-radius: 6px;
+  border-radius: var(--rayon-s);
   font-size: 1rem;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: background-color var(--duree) ease;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .newsletter-form button:hover {
-  background-color: #9333ea;
+  background-color: var(--violet-fonce);
 }
 
 .newsletter-success {
   max-width: 300px;
-  color: #c084fc;
+  color: var(--violet-clair);
   font-size: 0.9rem;
   line-height: 1.5;
 }
@@ -165,14 +165,14 @@
 /* Lien vers la politique de confidentialité, à côté du copyright. */
 .footer-legal-link {
   color: inherit;
-  transition: color 0.3s ease;
+  transition: color var(--duree) ease;
 }
 
 .footer-legal-link:hover {
-  color: #a855f7;
+  color: var(--violet);
 }
 
 /* Le lien sous le formulaire newsletter garde le violet de la marque. */
 .newsletter-col .form-legal a {
-  color: #a855f7;
+  color: var(--violet);
 }

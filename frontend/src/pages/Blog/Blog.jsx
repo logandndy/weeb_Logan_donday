@@ -28,7 +28,7 @@ const Blog = () => {
         </p>
 
         {isAuthenticated && (
-          <Link to="/blog/nouveau" className="btn-primary blog-new-btn">
+          <Link to="/blog/nouveau" className="btn btn-primary blog-new-btn">
             Écrire un article
           </Link>
         )}

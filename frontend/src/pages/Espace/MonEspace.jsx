@@ -55,7 +55,7 @@ function MesArticles() {
     <section className="account-section" aria-labelledby="mes-articles">
       <div className="account-section-header">
         <h2 id="mes-articles">Mes articles</h2>
-        <Link to="/blog/nouveau" className="btn-primary account-write-btn">
+        <Link to="/blog/nouveau" className="btn btn-primary">
           Écrire un article
         </Link>
       </div>
@@ -112,7 +112,7 @@ function Profil() {
           value={values.first_name} error={fieldErrors.first_name} onChange={handleChange} />
         <FormField id="profil-last-name" name="last_name" label="Nom *" required
           value={values.last_name} error={fieldErrors.last_name} onChange={handleChange} />
-        <button type="submit" className="btn-primary account-btn" disabled={isSubmitting}>
+        <button type="submit" className="btn btn-primary btn-block" disabled={isSubmitting}>
           {isSubmitting ? 'Enregistrement...' : 'Enregistrer'}
         </button>
       </form>
@@ -152,7 +152,7 @@ function MotDePasse() {
         <FormField id="password-old" label="Actuel *" {...field('old_password')} />
         <FormField id="password-new" label="Nouveau *" {...field('new_password')} />
         <FormField id="password-confirm" label="Confirmation *" {...field('new_password_confirm')} />
-        <button type="submit" className="btn-primary account-btn" disabled={isSubmitting}>
+        <button type="submit" className="btn btn-primary btn-block" disabled={isSubmitting}>
           {isSubmitting ? 'Modification...' : 'Changer le mot de passe'}
         </button>
       </form>
@@ -190,16 +190,16 @@ function SuppressionCompte() {
           <FormField id="delete-password" name="password" type="password" label="Votre mot de passe *"
             required value={values.password} error={fieldErrors.password} onChange={handleChange} />
           <div className="account-danger-actions">
-            <button type="submit" className="btn-danger" disabled={isSubmitting}>
+            <button type="submit" className="btn btn-danger" disabled={isSubmitting}>
               {isSubmitting ? 'Suppression...' : 'Supprimer définitivement'}
             </button>
-            <button type="button" className="btn-ghost" onClick={() => setIsOpen(false)}>
+            <button type="button" className="btn btn-ghost" onClick={() => setIsOpen(false)}>
               Annuler
             </button>
           </div>
         </form>
       ) : (
-        <button type="button" className="btn-danger" onClick={() => setIsOpen(true)}>
+        <button type="button" className="btn btn-danger" onClick={() => setIsOpen(true)}>
           Supprimer mon compte
         </button>
       )}

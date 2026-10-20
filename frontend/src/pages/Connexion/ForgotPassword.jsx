@@ -35,7 +35,7 @@ const ForgotPassword = () => {
           <FormField id="forgot-email" name="email" type="email" label="Email *" required
             value={values.email} onChange={handleChange} />
 
-          <button type="submit" className="btn-primary login-btn" disabled={isSubmitting}>
+          <button type="submit" className="btn btn-primary btn-block" disabled={isSubmitting}>
             {isSubmitting ? 'Envoi...' : 'Envoyer le lien'}
           </button>
         </form>

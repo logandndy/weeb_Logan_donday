@@ -2,7 +2,7 @@
 
 .blog-page {
   min-height: 80vh;
-  color: #ffffff;
+  color: var(--blanc);
   padding: 120px 5% 80px;
   max-width: 1200px;
   margin: 0 auto;
@@ -22,31 +22,29 @@
 }
 
 .blog-header .highlight {
-  color: #a855f7;
+  color: var(--violet);
 }
 
 .blog-header p {
   font-size: 1.1rem;
-  color: #9ca3af;
+  color: var(--texte-doux);
   line-height: 1.6;
 }
 
 .blog-new-btn {
-  display: inline-block;
   margin-top: 30px;
-  text-decoration: none;
 }
 
 /* --- Messages d'état (chargement, erreur, liste vide) --- */
 
 .blog-status {
   text-align: center;
-  color: #9ca3af;
+  color: var(--texte-doux);
   padding: 40px 20px;
 }
 
 .blog-status--error {
-  color: #fca5a5;
+  color: var(--rouge-clair);
 }
 
 /* --- Grille des articles --- */
@@ -58,20 +56,20 @@
 }
 
 .article-card {
-  background-color: #c084fc1a;
-  border: 1px solid rgba(168, 85, 247, 0.3);
-  border-radius: 12px;
+  background-color: var(--fond-carte);
+  border: 1px solid var(--violet-bord);
+  border-radius: var(--rayon-l);
   overflow: hidden;
   transition:
-    transform 0.3s ease,
-    border-color 0.3s ease,
-    box-shadow 0.3s ease;
+    transform var(--duree) ease,
+    border-color var(--duree) ease,
+    box-shadow var(--duree) ease;
 }
 
 .article-card:hover {
   transform: translateY(-6px);
-  border-color: #a855f7;
-  box-shadow: 0 12px 30px rgba(168, 85, 247, 0.2);
+  border-color: var(--violet);
+  box-shadow: var(--ombre-violette);
 }
 
 .article-card-link {
@@ -81,7 +79,7 @@
 }
 
 .article-card-link:focus-visible {
-  outline: 2px solid #a855f7;
+  outline: 2px solid var(--violet);
   outline-offset: 4px;
 }
 
@@ -122,14 +120,14 @@
 }
 
 .article-card-excerpt {
-  color: #9ca3af;
+  color: var(--texte-doux);
   font-size: 0.95rem;
   line-height: 1.6;
   margin: 0 0 18px;
 }
 
 .article-card-meta {
-  color: #a855f7;
+  color: var(--violet);
   font-size: 0.85rem;
   margin: 0;
 }
@@ -146,19 +144,19 @@
 
 .blog-pagination button {
   background: transparent;
-  border: 1px solid #4b5563;
-  color: #ffffff;
+  border: 1px solid var(--gris-bord);
+  color: var(--blanc);
   padding: 10px 20px;
-  border-radius: 6px;
+  border-radius: var(--rayon-s);
   cursor: pointer;
   transition:
-    border-color 0.3s ease,
-    color 0.3s ease;
+    border-color var(--duree) ease,
+    color var(--duree) ease;
 }
 
 .blog-pagination button:hover:not(:disabled) {
-  border-color: #a855f7;
-  color: #a855f7;
+  border-color: var(--violet);
+  color: var(--violet);
 }
 
 .blog-pagination button:disabled {
@@ -167,7 +165,7 @@
 }
 
 .blog-pagination span {
-  color: #9ca3af;
+  color: var(--texte-doux);
 }
 
 /* --- Page de détail d'un article --- */
@@ -176,7 +174,7 @@
   max-width: 780px;
   margin: 0 auto;
   padding: 120px 5% 80px;
-  color: #ffffff;
+  color: var(--blanc);
 }
 
 .article-back {
@@ -191,7 +189,7 @@
 }
 
 .article-meta {
-  color: #a855f7;
+  color: var(--violet);
   font-size: 0.95rem;
   margin: 0 0 25px;
 }
@@ -200,14 +198,14 @@
   display: inline-block;
   margin-left: 12px;
   padding: 3px 10px;
-  border: 1px solid #4b5563;
-  border-radius: 999px;
-  color: #9ca3af;
+  border: 1px solid var(--gris-bord);
+  border-radius: var(--rayon-rond);
+  color: var(--texte-doux);
   font-size: 0.75rem;
 }
 
 .article-excerpt {
-  color: #9ca3af;
+  color: var(--texte-doux);
   font-size: 1.15rem;
   line-height: 1.7;
   font-style: italic;
@@ -216,7 +214,7 @@
 
 .article-cover {
   width: 100%;
-  border-radius: 12px;
+  border-radius: var(--rayon-l);
   margin-bottom: 40px;
 }
 
@@ -234,11 +232,6 @@
   border-top: 1px solid rgba(168, 85, 247, 0.2);
 }
 
-.article-actions .btn-primary {
-  margin: 0;
-  text-decoration: none;
-}
-
 /* --- Formulaire d'ajout et de modification --- */
 
 .article-form-page {
@@ -249,9 +242,9 @@
 }
 
 .article-form-container {
-  background-color: #c084fc1a;
-  border: 3px solid rgba(168, 85, 247, 0.3);
-  border-radius: 12px;
+  background-color: var(--fond-carte);
+  border: 3px solid var(--violet-bord);
+  border-radius: var(--rayon-l);
   padding: 40px;
   width: 100%;
   max-width: 760px;
@@ -287,10 +280,6 @@
   gap: 15px;
   justify-content: center;
   margin-top: 30px;
-}
-
-.article-form-actions .btn-primary {
-  margin: 0;
 }
 
 @media (max-width: 992px) {

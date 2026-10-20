@@ -48,7 +48,7 @@ const Signup = () => {
           <FormField id="signup-confirm-password" type="password" label="Confirmer le mot de passe *"
             {...field('password_confirm')} />
 
-          <button type="submit" className="btn-primary signup-btn" disabled={isSubmitting}>
+          <button type="submit" className="btn btn-primary btn-block" disabled={isSubmitting}>
             {isSubmitting ? 'Création...' : 'Créer mon compte'}
           </button>
           <p className="form-legal">

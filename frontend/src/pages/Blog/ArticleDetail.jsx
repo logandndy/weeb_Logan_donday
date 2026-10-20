@@ -88,10 +88,10 @@ const ArticleDetail = () => {
 
       {canEdit && (
         <div className="article-actions">
-          <Link to={`/blog/${article.slug}/modifier`} className="btn-primary">
+          <Link to={`/blog/${article.slug}/modifier`} className="btn btn-primary">
             Modifier
           </Link>
-          <button type="button" className="btn-danger" onClick={handleDelete} disabled={isDeleting}>
+          <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={isDeleting}>
             {isDeleting ? 'Suppression...' : 'Supprimer'}
           </button>
         </div>

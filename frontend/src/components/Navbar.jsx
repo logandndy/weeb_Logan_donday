@@ -53,7 +53,7 @@ const Navbar = () => {
                 <NavLink to="/mon-espace" className="nav-user" title="Mon espace">
                   {user.first_name}
                 </NavLink>
-                <button type="button" className="join-btn" onClick={handleLogout}>
+                <button type="button" className="btn btn-primary join-btn" onClick={handleLogout}>
                   Déconnexion
                 </button>
               </>
@@ -62,7 +62,7 @@ const Navbar = () => {
                 <Link to="/login" className="login-link">
                   Connexion
                 </Link>
-                <Link to="/signup" className="join-btn">
+                <Link to="/signup" className="btn btn-primary join-btn">
                   S&apos;inscrire
                 </Link>
               </>
@@ -97,7 +97,7 @@ const Navbar = () => {
                 <Link to="/blog/nouveau" onClick={closeMenu}>
                   Écrire un article
                 </Link>
-                <button type="button" className="join-btn-mobile" onClick={handleLogout}>
+                <button type="button" className="btn btn-primary btn-block" onClick={handleLogout}>
                   Déconnexion
                 </button>
               </>
@@ -106,7 +106,7 @@ const Navbar = () => {
                 <Link to="/login" onClick={closeMenu}>
                   Connexion
                 </Link>
-                <Link to="/signup" className="join-btn-mobile" onClick={closeMenu}>
+                <Link to="/signup" className="btn btn-primary btn-block" onClick={closeMenu}>
                   S&apos;inscrire
                 </Link>
               </>
