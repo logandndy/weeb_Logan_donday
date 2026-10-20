@@ -52,15 +52,16 @@ production et exige une vraie `SECRET_KEY`. Variables principales :
 
 ```
 frontend/src/
-├── components/   Navbar, Footer, ProtectedRoute
+├── components/   Navbar, Footer, ProtectedRoute, FormField, Pagination
 ├── context/      Session utilisateur (AuthProvider)
-├── hooks/        useAuth, useScrollReveal
+├── hooks/        useAuth, useFetch (chargements), useForm (formulaires), useScrollReveal
 ├── pages/        Un dossier par page
 ├── services/     api.js : tous les appels à l'API
-└── styles/       Une feuille CSS par zone
+├── styles/       Une feuille CSS par zone
+└── utils/        format.js : dates en français
 backend/
 ├── weeb_api/     Configuration (settings, urls, route de santé)
-└── apps/         accounts · articles · contact
+└── apps/         accounts · articles · contact · newsletter
 e2e/              Tests de bout en bout (Playwright)
 docs/REX.md       Dossier DevOps
 ```
@@ -101,11 +102,14 @@ React (Vercel) ──HTTPS/JSON + JWT──> Django REST (Render) ──> Postgr
 | Route front | Accès | API |
 |---|---|---|
 | `/` · `/contact` | public | `POST /contact/` |
-| `/blog` · `/blog/:slug` | public | `GET /articles/` · `/articles/<slug>/` |
+| `/blog` · `/blog/:slug` | public (brouillon : son auteur) | `GET /articles/` · `/articles/<slug>/` |
 | `/blog/nouveau` | connecté | `POST /articles/` |
 | `/blog/:slug/modifier` | auteur ou admin | `PATCH` · `DELETE /articles/<slug>/` |
 | `/login` · `/signup` | public | `POST /auth/login/` · `/auth/signup/` |
 | `/mot-de-passe-oublie` · `/reset-password` | public | `POST /auth/password-reset/` · `/confirm/` |
+| `/mon-espace` | connecté | `GET /articles/?mine=true` · `GET` `PATCH` `DELETE /auth/me/` · `POST /auth/password-change/` |
+| `/confidentialite` | public | aucune |
+| pied de page · `/newsletter/desinscription` | public | `POST /newsletter/` · `/newsletter/unsubscribe/` |
 
 Autres routes API : `/auth/me/`, `/auth/refresh/`, `/auth/logout/`, `/health/`
 (API + base), `/ping/` (API seule, pour les sondes fréquentes).
@@ -117,14 +121,17 @@ focus violet et label flottant sur les champs ; contour clavier
 
 **Hors maquette** : bande défilante des partenaires, menu burger animé,
 inscription, mot de passe oublié, pagination, brouillons, page 404, page active
-dans la navbar.
+dans la navbar, page **Mon espace** (mes articles et brouillons, profil, mot de
+passe, suppression du compte), **vraie newsletter** et page **Confidentialité**.
 
 ## Authentification et sécurité
 
-1. **Inscription** : compte créé **inactif**, mot de passe vérifié par les validateurs Django puis haché.
-2. **Validation** : un admin active le compte (action « Valider les comptes sélectionnés »). Avant, la connexion renvoie `401`.
-3. **Connexion** : token d'accès (30 min) + token de rafraîchissement (7 jours), renouvelé automatiquement par `api.js`.
-4. **Mot de passe oublié** : lien signé à usage unique envoyé par email. Réponse identique que l'email existe ou non.
+1. **Inscription** : compte créé **inactif**, mot de passe vérifié par les validateurs Django puis haché. Les admins reçoivent un email.
+2. **Validation** : un admin active le compte (action « Valider les comptes sélectionnés »). La personne reçoit un email. Avant, la connexion renvoie `401`.
+3. **Connexion** : token d'accès (30 min) + token de rafraîchissement (7 jours), renouvelé automatiquement par `api.js`. Chaque renouvellement grille l'ancien token (liste noire).
+4. **Déconnexion** : le token de rafraîchissement est mis sur liste noire côté serveur.
+5. **Mot de passe oublié** : lien signé à usage unique, envoyé seulement aux comptes actifs. Réponse identique que l'email existe ou non.
+6. **Changement ou réinitialisation du mot de passe, suspension par un admin** : toutes les sessions du compte sont coupées.
 
 | Profil | Lire | Écrire | Admin |
 |---|:---:|:---:|:---:|
@@ -137,12 +144,16 @@ dans la navbar.
 
 - API **fermée par défaut** (`IsAuthenticated`), routes publiques ouvertes une par une.
 - `IsAuthorOrReadOnly` : seul l'auteur (ou un admin) modifie ou supprime. L'auteur est fixé par le serveur.
-- **Limitation des requêtes** par IP : 5 connexions/min ; 10 inscriptions, 5 resets, 10 messages par heure → `429`.
+- **Limitation des requêtes** par IP : 5 connexions par minute. Par heure : 10 inscriptions, 5 resets, 5 changements de mot de passe, 10 messages, 10 inscriptions à la newsletter. Au-delà : `429`.
+- Les actions sensibles redemandent le mot de passe : changer de mot de passe, supprimer son compte.
 - Production : `DEBUG=False` par défaut, HTTPS forcé + HSTS, CORS limité au front, aucun secret dans Git. La CI vérifie tout ça (`check --deploy`).
 - `ProtectedRoute` côté front n'est **pas** une sécurité : c'est le backend qui refuse.
 
 **RGPD** : données minimales (prénom, nom, email), mots de passe hachés,
-hébergement dans l'UE (Francfort), Sentry sans données personnelles.
+hébergement dans l'UE (Francfort), Sentry sans données personnelles. Page
+`/confidentialite` et mention sous chaque formulaire. Droit à l'effacement
+depuis Mon espace, désinscription de la newsletter par lien, messages de
+contact supprimés après 12 mois (`python manage.py purger_contacts`).
 
 ## Prise en main du code
 
@@ -166,10 +177,10 @@ l'utilisateur a quitté la page entre-temps. Les erreurs Django
 
 | Niveau | Outil | Tests |
 |---|---|---|
-| Unitaire (back) | Django, `test_unit.py` | 67 |
-| Intégration (back) | Django + client HTTP, `test_integration.py` | 65 |
-| Front | Vitest + Testing Library | 26 |
-| Bout en bout | Playwright (Chromium) | 9 parcours |
+| Unitaire (back) | Django, `test_unit.py` | 74 |
+| Intégration (back) | Django + client HTTP, `test_integration.py` | 86 |
+| Front | Vitest + Testing Library | 33 |
+| Bout en bout | Playwright (Chromium) | 10 parcours |
 
 ```bash
 cd backend && python manage.py test               # --tag unit / --tag integration

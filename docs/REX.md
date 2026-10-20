@@ -87,8 +87,8 @@ flowchart LR
 
 | Job | Ce qu'il garantit |
 |---|---|
-| `backend` | Config valide, sécurité de prod sans avertissement, aucune migration oubliée, 132 tests verts sur un vrai PostgreSQL |
-| `frontend` | Code propre (lint), 26 tests verts, application qui compile |
+| `backend` | Config valide, sécurité de prod sans avertissement, aucune migration oubliée, 160 tests verts sur un vrai PostgreSQL |
+| `frontend` | Code propre (lint), 33 tests verts, application qui compile |
 | `docker` | L'image se construit **et démarre** |
 | `e2e` | Les parcours utilisateur marchent, front + API réunis |
 | `deploy` | La nouvelle version est réellement en ligne |
@@ -200,10 +200,10 @@ tests lents mais réalistes.
 
 | Niveau | Outil | Question posée | Tests |
 |---|---|---|---|
-| Unitaire | Django (`test_unit.py`) | Cette brique seule fonctionne-t-elle ? (modèle, validation, permission, email) | 67 |
-| Intégration | Django + client HTTP (`test_integration.py`) | Vue, base, JWT et limites fonctionnent-ils ensemble ? | 65 |
-| Front | Vitest + Testing Library | `api.js`, session et écrans réagissent-ils bien ? | 26 |
-| Bout en bout | Playwright (Chromium) | Un utilisateur arrive-t-il au bout de son parcours ? | 9 parcours |
+| Unitaire | Django (`test_unit.py`) | Cette brique seule fonctionne-t-elle ? (modèle, validation, permission, email) | 74 |
+| Intégration | Django + client HTTP (`test_integration.py`) | Vue, base, JWT et limites fonctionnent-ils ensemble ? | 86 |
+| Front | Vitest + Testing Library | `api.js`, session et écrans réagissent-ils bien ? | 33 |
+| Bout en bout | Playwright (Chromium) | Un utilisateur arrive-t-il au bout de son parcours ? | 10 parcours |
 
 **Ce que j'ai testé en priorité** : ce qui coûterait cher si ça cassait.
 
@@ -304,7 +304,7 @@ offres gratuites se vérifie dans leurs tableaux de bord, pas seulement en théo
 
 | Angle | Indicateur | Valeur | Pourquoi |
 |---|---|---|---|
-| Avant livraison | Tests back / front / E2E | 129 / 26 / 9 parcours, tous verts | Filet contre les régressions |
+| Avant livraison | Tests back / front / E2E | 160 / 33 / 10 parcours, tous verts | Filet contre les régressions |
 | | Couverture back | 93 % (hors tests et migrations) | Code jamais exécuté = code jamais vérifié |
 | | Couverture front | ~79 % (services, composants, session) | Les pages sont surtout couvertes par l'E2E |
 | | Lint front | 0 erreur | Code homogène |
@@ -345,7 +345,6 @@ issues pas toujours créées. D'où l'axe d'amélioration « protéger `main` »
 | Limitation des requêtes via Redis et vraie IP | Le compteur actuel est par worker, et l'IP lue peut être falsifiée |
 | Environnement de préproduction + validation humaine | Tester sur une copie de la prod avant de livrer |
 | Dependabot | Être prévenu des failles dans les dépendances |
-| Révocation des tokens à la déconnexion | Un token volé reste valable 7 jours |
 | Mesure de l'empreinte de la CI | Passer d'une réflexion qualitative à des chiffres |
 
 ---
