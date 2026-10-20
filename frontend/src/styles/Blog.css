@@ -103,10 +103,31 @@
   transform: scale(1.05);
 }
 
-.article-card-placeholder {
-  font-size: 2rem;
-  font-weight: bold;
-  color: rgba(168, 85, 247, 0.4);
+/* Couverture générée quand l'article n'a pas d'image : un dégradé dans la
+   teinte de l'article (--teinte, calculée dans ArticleCard) et son initiale. */
+.article-card-generated {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 25% 20%, hsl(var(--teinte) 90% 70% / 0.5), transparent 55%),
+    radial-gradient(circle at 85% 90%, hsl(calc(var(--teinte) + 30) 80% 55% / 0.35), transparent 50%),
+    linear-gradient(135deg, hsl(var(--teinte) 60% 18%), #0d0d24);
+  transition: transform var(--duree) ease;
+}
+
+.article-card-generated span {
+  font-size: 5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+}
+
+.article-card:hover .article-card-generated {
+  transform: scale(1.05);
 }
 
 .article-card-body {
@@ -127,9 +148,64 @@
 }
 
 .article-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
   color: var(--violet);
   font-size: 0.85rem;
   margin: 0;
+}
+
+.article-card-reading {
+  color: var(--texte-doux);
+}
+
+.article-card-meta .article-draft-badge {
+  margin-left: 0;
+}
+
+/* Article mis en avant en haut du blog : toute la largeur, image à gauche. */
+.article-card--featured {
+  grid-column: 1 / -1;
+}
+
+.article-card--featured .article-card-link {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+}
+
+.article-card--featured .article-card-cover {
+  height: 100%;
+  min-height: 320px;
+}
+
+.article-card--featured .article-card-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 40px;
+}
+
+.article-card--featured .article-card-body h2 {
+  font-size: 2rem;
+}
+
+.article-card--featured .article-card-generated span {
+  font-size: 8rem;
+}
+
+.article-card-label {
+  align-self: flex-start;
+  margin: 0 0 15px;
+  padding: 4px 12px;
+  border-radius: var(--rayon-rond);
+  background-color: var(--violet-halo);
+  color: var(--violet-clair);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 /* --- Pagination --- */
@@ -285,6 +361,24 @@
 @media (max-width: 992px) {
   .articles-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .article-card--featured .article-card-link {
+    grid-template-columns: 1fr;
+  }
+
+  .article-card--featured .article-card-cover {
+    min-height: 200px;
+  }
+
+  .article-card--featured .article-card-body {
+    padding: 25px;
+  }
+
+  .article-card--featured .article-card-body h2 {
+    font-size: 1.5rem;
   }
 }
 

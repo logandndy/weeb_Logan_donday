@@ -61,7 +61,8 @@ const ArticleDetail = () => {
       <header className="article-header">
         <h1>{article.title}</h1>
         <p className="article-meta">
-          Par {article.author.full_name} · {formatDate(article.created_at)}
+          Par {article.author.full_name} · {formatDate(article.created_at)} ·{' '}
+          {article.reading_time} min de lecture
           {!article.is_published && <span className="article-draft-badge">Brouillon</span>}
         </p>
         {article.excerpt && <p className="article-excerpt">{article.excerpt}</p>}
