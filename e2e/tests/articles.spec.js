@@ -1,9 +1,7 @@
 /** Parcours 3 et 4 : un auteur connecté publie, modifie puis supprime un article. */
-import { expect, test } from '@playwright/test';
-import { AUTEUR, AUTH_FILE, BROUILLON } from './donnees.js';
-
-// Session enregistrée par auth.setup.js : pas de nouvelle connexion ici.
-test.use({ storageState: AUTH_FILE });
+import { expect } from '@playwright/test';
+import { AUTEUR, BROUILLON } from './donnees.js';
+import { test } from './session.js';
 
 const CONTENU =
   'Un article écrit par Playwright pour vérifier tout le parcours de publication.';

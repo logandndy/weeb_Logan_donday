@@ -12,5 +12,5 @@ export const COMPTE_RESET = 'e2e.reset@weeb.fr';
 export const ARTICLE_PUBLIE = { titre: 'Article E2E publié', slug: 'article-e2e-publie' };
 export const BROUILLON = { titre: 'Brouillon E2E', slug: 'brouillon-e2e' };
 
-// Session de l'auteur (tokens du localStorage), enregistrée par auth.setup.js.
+// Session de l'auteur (cookie de session), enregistrée par auth.setup.js.
 export const AUTH_FILE = path.join(import.meta.dirname, '..', '.auth', 'auteur.json');

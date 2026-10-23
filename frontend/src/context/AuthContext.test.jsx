@@ -1,7 +1,7 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import useAuth from '../hooks/useAuth';
-import { authApi, tokenStorage } from '../services/api';
+import { authApi, request, session } from '../services/api';
 import { AuthProvider } from './AuthContext';
 
 const ADA = { id: 1, first_name: 'Ada', is_staff: false };
@@ -36,7 +36,7 @@ function renderProvider() {
 }
 
 describe('<AuthProvider>', () => {
-  it('sans token, ne contacte pas l’API et reste déconnecté', async () => {
+  it('sans session dans ce navigateur, ne contacte pas l’API et reste déconnecté', async () => {
     const me = vi.spyOn(authApi, 'me');
 
     renderProvider();
@@ -45,8 +45,9 @@ describe('<AuthProvider>', () => {
     expect(me).not.toHaveBeenCalled();
   });
 
-  it('restaure la session si le token est encore valide', async () => {
-    tokenStorage.save({ access: 'token-a', refresh: 'token-r' });
+  it('restaure la session au rechargement de la page', async () => {
+    // Après un rechargement : plus de token en mémoire, seulement l'indicateur.
+    localStorage.setItem('weeb_session', '1');
     vi.spyOn(authApi, 'me').mockResolvedValue(ADA);
 
     renderProvider();
@@ -54,45 +55,42 @@ describe('<AuthProvider>', () => {
     expect(await screen.findByText('connecté : Ada')).toBeInTheDocument();
   });
 
-  it('efface les tokens si le profil ne peut pas être chargé', async () => {
-    tokenStorage.save({ access: 'token-a', refresh: 'token-r' });
-    vi.spyOn(authApi, 'me').mockRejectedValue(new Error('Token invalide'));
+  it('reste déconnecté si la session ne peut pas être restaurée', async () => {
+    localStorage.setItem('weeb_session', '1');
+    vi.spyOn(authApi, 'me').mockRejectedValue(new Error('Session expirée'));
 
     renderProvider();
 
     expect(await screen.findByText('déconnecté')).toBeInTheDocument();
-    expect(tokenStorage.getAccess()).toBeNull();
-    expect(tokenStorage.getRefresh()).toBeNull();
   });
 
-  it('login() enregistre les tokens et l’utilisateur', async () => {
-    vi.spyOn(authApi, 'login').mockResolvedValue({ access: 'a', refresh: 'r', user: ADA });
+  it('login() garde le token d’accès en mémoire et l’utilisateur', async () => {
+    vi.spyOn(authApi, 'login').mockResolvedValue({ access: 'a', user: ADA });
     renderProvider();
     await screen.findByText('déconnecté');
 
     fireEvent.click(screen.getByRole('button', { name: 'login' }));
 
     expect(await screen.findByText('connecté : Ada')).toBeInTheDocument();
-    expect(tokenStorage.getAccess()).toBe('a');
-    expect(tokenStorage.getRefresh()).toBe('r');
+    expect(session.getAccess()).toBe('a');
   });
 
-  it('logout() révoque le token côté serveur puis vide la session', async () => {
-    tokenStorage.save({ access: 'token-a', refresh: 'token-r' });
+  it('logout() demande au serveur de fermer la session puis vide la session locale', async () => {
+    session.start('token-a');
     vi.spyOn(authApi, 'me').mockResolvedValue(ADA);
-    const logoutApi = vi.spyOn(authApi, 'logout').mockResolvedValue({});
+    const logoutApi = vi.spyOn(authApi, 'logout').mockResolvedValue(null);
     renderProvider();
     await screen.findByText('connecté : Ada');
 
     fireEvent.click(screen.getByRole('button', { name: 'logout' }));
 
-    expect(logoutApi).toHaveBeenCalledWith('token-r');
+    expect(logoutApi).toHaveBeenCalled();
     expect(screen.getByText('déconnecté')).toBeInTheDocument();
-    expect(tokenStorage.getAccess()).toBeNull();
+    expect(session.getAccess()).toBeNull();
   });
 
   it('logout() ferme la session même si le serveur ne répond pas', async () => {
-    tokenStorage.save({ access: 'token-a', refresh: 'token-r' });
+    session.start('token-a');
     vi.spyOn(authApi, 'me').mockResolvedValue(ADA);
     vi.spyOn(authApi, 'logout').mockRejectedValue(new Error('Réseau indisponible'));
     renderProvider();
@@ -101,6 +99,22 @@ describe('<AuthProvider>', () => {
     fireEvent.click(screen.getByRole('button', { name: 'logout' }));
 
     expect(screen.getByText('déconnecté')).toBeInTheDocument();
-    expect(tokenStorage.getRefresh()).toBeNull();
+    expect(session.mayExist()).toBe(false);
+  });
+
+  it('repasse en visiteur quand le serveur met fin à la session', async () => {
+    session.start('token-a');
+    vi.spyOn(authApi, 'me').mockResolvedValue(ADA);
+    renderProvider();
+    await screen.findByText('connecté : Ada');
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: () => Promise.resolve({ detail: 'Votre session a expiré.' }),
+    });
+
+    await act(() => request('/articles/').catch(() => {}));
+
+    expect(screen.getByText('déconnecté')).toBeInTheDocument();
   });
 });

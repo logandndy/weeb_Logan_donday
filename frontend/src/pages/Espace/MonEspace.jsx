@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { articlesApi, authApi, tokenStorage } from '../../services/api';
+import { articlesApi, authApi, session } from '../../services/api';
 import useAuth from '../../hooks/useAuth';
 import useFetch from '../../hooks/useFetch';
 import useForm from '../../hooks/useForm';
@@ -132,8 +132,9 @@ function MotDePasse() {
     setFeedback('');
     submit(async (form) => {
       const data = await authApi.changePassword(form);
-      // Le serveur a coupé toutes les sessions et en a ouvert une neuve pour ce navigateur.
-      tokenStorage.save({ access: data.access, refresh: data.refresh });
+      // Le serveur a coupé toutes les sessions et en a ouvert une neuve pour ce
+      // navigateur : nouveau token d'accès ici, nouveau cookie côté serveur.
+      session.start(data.access);
       setValues(EMPTY_PASSWORDS);
       setFeedback(data.detail);
     });

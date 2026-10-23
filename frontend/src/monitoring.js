@@ -19,8 +19,8 @@ export function initMonitoring() {
     // 10 % des chargements de page mesurés : suffisant pour suivre les
     // performances sans alourdir le site ni dépasser le quota gratuit.
     tracesSampleRate: 0.1,
-    // Les traces ne sont propagées qu'à notre propre API.
-    tracePropagationTargets: [import.meta.env.VITE_API_URL ?? 'localhost'],
+    // Par défaut, les traces ne sont propagées qu'aux appels vers notre propre
+    // domaine, donc à l'API (relayée par Vercel), jamais à un service tiers.
     sendDefaultPii: false,
     // Les erreurs passent par notre propre domaine (/monitoring), relayées
     // par Vercel vers Sentry : les bloqueurs de pub ne les interceptent plus.

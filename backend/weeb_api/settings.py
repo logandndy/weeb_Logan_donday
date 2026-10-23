@@ -83,7 +83,6 @@ THIRD_PARTY_APPS = [
     # Liste noire des tokens : une déconnexion ou un changement de mot de passe
     # rend vraiment inutilisables les tokens de rafraîchissement déjà délivrés.
     "rest_framework_simplejwt.token_blacklist",
-    "corsheaders",
 ]
 
 LOCAL_APPS = [
@@ -99,7 +98,6 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 # --- Requêtes, routage et gabarits ------------------------------------------
 
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -197,12 +195,10 @@ SIMPLE_JWT = {
 }
 
 
-# --- CORS -------------------------------------------------------------------
-# Le frontend React (Vite) tourne sur un port différent de celui de l'API.
-
-CORS_ALLOWED_ORIGINS = env_list(
-    "CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
-)
+# Pas de CORS : le navigateur n'appelle jamais l'API sur un autre domaine.
+# En production, Vercel relaie /api vers Render (vercel.json). En local, Vite
+# fait de même (vite.config.js). C'est aussi ce qui permet le cookie de session
+# SameSite=Strict (voir apps/accounts/sessions.py).
 
 
 # --- Envoi d'emails ---------------------------------------------------------

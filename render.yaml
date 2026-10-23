@@ -23,8 +23,6 @@ services:
         value: localhost
       - key: DATABASE_URL
         sync: false            # secret saisi à la main dans le dashboard (URL Neon)
-      - key: CORS_ALLOWED_ORIGINS
-        sync: false            # URL du front Vercel
       - key: FRONTEND_URL
         sync: false            # URL du front Vercel
       - key: SENTRY_DSN
