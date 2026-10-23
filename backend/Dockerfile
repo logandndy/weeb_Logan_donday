@@ -36,8 +36,9 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD python -c "import os, urllib.request; urllib.request.urlopen(f'http://localhost:{os.environ[\"PORT\"]}/api/ping/')"
 
 # Au démarrage : migrations, puis nettoyage (messages de contact de plus de
-# 12 mois, tokens expirés de la liste noire), puis gunicorn. Render arrête le
-# service quand il est inactif : le nettoyage tourne donc à chaque réveil.
+# 12 mois, tokens expirés de la liste noire), puis gunicorn. L'offre gratuite
+# de Render ne planifie pas de tâche : le nettoyage tourne donc à chaque
+# démarrage du conteneur (déploiement ou redémarrage).
 # `exec` : gunicorn remplace le shell et reçoit lui-même le signal d'arrêt de
 # Docker, il termine alors proprement les requêtes en cours.
 # 2 workers : suffisant pour le trafic du blog et adapté aux 512 Mo de l'offre gratuite.

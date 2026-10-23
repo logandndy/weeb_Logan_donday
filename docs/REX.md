@@ -129,7 +129,7 @@ Choix du [Dockerfile](../backend/Dockerfile) :
 | Dépendances installées **avant** le code | Cache Docker : pas de réinstallation si `requirements.txt` ne change pas |
 | Utilisateur non-root | Une faille ne donne pas les droits root du conteneur |
 | `HEALTHCHECK` sur `/api/ping/` | Docker sait si l'API répond, sans réveiller la base toutes les 30 s |
-| `migrate`, nettoyage, puis `exec gunicorn --workers 2` | Pas d'étape pré-déploiement en gratuit. Le nettoyage (messages de plus de 12 mois, tokens expirés) tourne à chaque réveil. `exec` : gunicorn reçoit lui-même le signal d'arrêt et termine proprement. 2 workers tiennent dans 512 Mo |
+| `migrate`, nettoyage, puis `exec gunicorn --workers 2` | Pas d'étape pré-déploiement en gratuit. Le nettoyage (messages de plus de 12 mois, tokens expirés) tourne à chaque démarrage, faute de tâche planifiée en gratuit. `exec` : gunicorn reçoit lui-même le signal d'arrêt et termine proprement. 2 workers tiennent dans 512 Mo |
 
 `.dockerignore` exclut `venv/`, la base locale et `.env` (secrets).
 `.gitattributes` force les fins de ligne LF : sous Windows, des CRLF cassent les scripts Linux.
