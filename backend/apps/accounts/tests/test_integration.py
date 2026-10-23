@@ -58,18 +58,39 @@ class SignupTests(ThrottleResetMixin, APITestCase):
 
         self.assertEqual(
             response.data["detail"],
-            "Votre compte a bien été créé. Il doit être validé par un "
-            "administrateur avant que vous puissiez vous connecter.",
+            "Inscription enregistrée. Votre compte doit être validé par un "
+            "administrateur avant que vous puissiez vous connecter. Si cette adresse "
+            "avait déjà un compte, un email vous l'indique.",
         )
         self.assertNotIn("password", response.data)
         self.assertNotIn("password_confirm", response.data)
 
-    def test_signup_refuse_un_email_deja_utilise(self):
+    def test_signup_ne_renvoie_ni_identifiant_ni_donnees(self):
+        response = self.inscription()
+
+        self.assertEqual(set(response.data), {"detail"})
+
+    def test_email_deja_utilise_meme_reponse_qu_une_vraie_inscription(self):
+        """Sinon, on pourrait tester des adresses pour savoir qui a un compte."""
+        nouvelle = self.inscription(email="bob@weeb.fr")
         make_user(email="ada@weeb.fr")
 
-        response = self.inscription(email="ADA@weeb.fr", last_name="L")
+        existante = self.inscription(email="ADA@weeb.fr", last_name="L")
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(existante.status_code, nouvelle.status_code)
+        self.assertEqual(existante.data, nouvelle.data)
+
+    def test_email_deja_utilise_ne_cree_rien_et_previent_le_titulaire(self):
+        titulaire = make_user(email="ada@weeb.fr")
+
+        self.inscription(email="ADA@weeb.fr", password=NOUVEAU_MDP, password_confirm=NOUVEAU_MDP)
+
+        self.assertEqual(User.objects.filter(email__iexact="ada@weeb.fr").count(), 1)
+        titulaire.refresh_from_db()
+        self.assertTrue(titulaire.check_password(VALID_PASSWORD), "Le mot de passe ne doit pas changer.")
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["ada@weeb.fr"])
+        self.assertIn("vous en avez déjà un", mail.outbox[0].body)
 
     def test_signup_refuse_deux_mots_de_passe_differents(self):
         response = self.inscription(password_confirm="AutreMotDePasse!2026")

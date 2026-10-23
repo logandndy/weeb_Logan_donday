@@ -1,5 +1,6 @@
 """Vues d'authentification : inscription, connexion, profil, mot de passe oublié."""
 
+from django.contrib.auth.hashers import make_password
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -7,7 +8,11 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from .emails import notify_admins_new_account, send_password_reset_email
+from .emails import (
+    notify_admins_new_account,
+    send_account_exists_email,
+    send_password_reset_email,
+)
 from .serializers import (
     LoginSerializer,
     PasswordChangeSerializer,
@@ -27,22 +32,35 @@ class SignupView(generics.CreateAPIView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "signup"
 
-    def perform_create(self, serializer):
-        """Crée le compte, puis prévient les administrateurs qu'il attend leur validation."""
-        notify_admins_new_account(serializer.save())
-
     def create(self, request, *args, **kwargs):
-        """Crée le compte, puis ajoute un message que le frontend affiche tel quel.
+        """Crée le compte, ou prévient le titulaire si l'adresse a déjà un compte.
 
-        Le compte étant inactif, on prévient l'utilisateur qu'il ne pourra se
-        connecter qu'après validation par un administrateur.
+        La réponse est la même dans les deux cas : un message, sans identifiant.
+        Sinon, n'importe qui pourrait tester des adresses pour savoir qui est
+        inscrit (énumération des comptes). Le vrai titulaire, lui, est prévenu
+        par email. Le compte créé est inactif : le message le dit.
         """
-        response = super().create(request, *args, **kwargs)
-        response.data["detail"] = (
-            "Votre compte a bien été créé. Il doit être validé par un "
-            "administrateur avant que vous puissiez vous connecter."
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        existing_user = serializer.get_existing_user()
+        if existing_user is None:
+            notify_admins_new_account(serializer.save())
+        else:
+            # Hachage pour rien, mais pas inutile : une vraie création hache le
+            # mot de passe (opération volontairement lente). Sans lui, une
+            # réponse plus rapide trahirait une adresse déjà inscrite.
+            make_password(serializer.validated_data["password"])
+            send_account_exists_email(existing_user)
+
+        return Response(
+            {
+                "detail": "Inscription enregistrée. Votre compte doit être validé par un "
+                "administrateur avant que vous puissiez vous connecter. Si cette adresse "
+                "avait déjà un compte, un email vous l'indique."
+            },
+            status=status.HTTP_201_CREATED,
         )
-        return response
 
 
 class LoginView(TokenObtainPairView):

@@ -142,12 +142,19 @@ class SignupSerializerTests(TestCase):
         self.assertTrue(serializer.is_valid(), serializer.errors)
         self.assertEqual(serializer.save().email, "ada@weeb.fr")
 
-    def test_refuse_un_email_deja_pris_avec_une_autre_casse(self):
+    def test_un_email_deja_pris_n_est_pas_une_erreur_de_validation(self):
+        """Une erreur sur l'email révélerait que l'adresse a un compte."""
         make_user(email="ada@weeb.fr")
         serializer = SignupSerializer(data=self.donnees(email="ADA@weeb.fr"))
 
-        self.assertFalse(serializer.is_valid())
-        self.assertIn("email", serializer.errors)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        self.assertEqual(serializer.get_existing_user().email, "ada@weeb.fr")
+
+    def test_aucun_compte_existant_pour_une_nouvelle_adresse(self):
+        serializer = SignupSerializer(data=self.donnees())
+        serializer.is_valid(raise_exception=True)
+
+        self.assertIsNone(serializer.get_existing_user())
 
     def test_refuse_deux_mots_de_passe_differents(self):
         serializer = SignupSerializer(data=self.donnees(password_confirm="Autre!2026xyz"))
@@ -369,6 +376,6 @@ class AccountEmailsTests(TestCase):
         self.assertIn("https://weeb.exemple.fr/login", mail.outbox[0].body)
 
     def test_une_panne_d_email_ne_fait_pas_echouer_l_appelant(self):
-        with patch("apps.accounts.emails.send_mail", side_effect=ConnectionError("Brevo injoignable")):
-            with self.assertLogs("apps.accounts.emails", level="ERROR"):
+        with patch("weeb_api.mail.send_mail", side_effect=ConnectionError("Brevo injoignable")):
+            with self.assertLogs("weeb_api.mail", level="ERROR"):
                 send_account_validated_email(self.user)

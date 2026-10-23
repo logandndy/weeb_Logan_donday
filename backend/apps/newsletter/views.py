@@ -1,34 +1,26 @@
 """Inscription et désinscription à la newsletter."""
 
-import logging
-
 from django.conf import settings
-from django.core.mail import send_mail
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
+from weeb_api.mail import send_email
+
 from .models import Subscriber
 from .serializers import SubscribeSerializer, UnsubscribeSerializer
-
-logger = logging.getLogger(__name__)
 
 
 def send_welcome_email(subscriber):
     """Confirme l'inscription et donne le lien de désinscription, valable à tout moment."""
     unsubscribe_url = f"{settings.FRONTEND_URL}/newsletter/desinscription?token={subscriber.unsubscribe_token}"
-    try:
-        send_mail(
-            "Bienvenue dans la newsletter Weeb",
-            "Merci pour votre inscription ! Vous recevrez nos prochains articles par email.\n\n"
-            f"Pour vous désinscrire à tout moment :\n{unsubscribe_url}",
-            settings.DEFAULT_FROM_EMAIL,
-            [subscriber.email],
-        )
-    except Exception:
-        # Une panne du service d'email ne doit pas faire échouer l'inscription.
-        logger.exception("Échec de l'email de bienvenue de la newsletter")
+    send_email(
+        "Bienvenue dans la newsletter Weeb",
+        "Merci pour votre inscription ! Vous recevrez nos prochains articles par email.\n\n"
+        f"Pour vous désinscrire à tout moment :\n{unsubscribe_url}",
+        [subscriber.email],
+    )
 
 
 class SubscribeView(APIView):
