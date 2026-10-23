@@ -15,12 +15,18 @@ Le dossier DevOps (semaine 3) est dans [docs/REX.md](docs/REX.md).
 
 ## Démarrage en local
 
+**Prérequis** : **Python 3.13** et **Node.js 24**. Ce sont les versions de la
+production et de la CI, fixées dans [.python-version](.python-version) et
+[.nvmrc](.nvmrc). Python 3.12 fonctionne aussi (minimum requis par Django 6).
+
 ```bash
 # Backend — port 8000
 cd backend
-python -m venv venv && venv\Scripts\activate
+python -m venv venv
+venv\Scripts\activate             # Windows
+source venv/bin/activate          # Linux / macOS
 pip install -r requirements.txt
-copy .env.example .env        # active le mode développement
+copy .env.example .env            # Windows (Linux / macOS : cp), active le mode développement
 python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver
@@ -75,7 +81,7 @@ React (Vercel) ──HTTPS/JSON + JWT──> Django REST (Render) ──> Postgr
 - **Front découpé par page**, pas par type de fichier : tout ce qui concerne une page est au même endroit.
 - **Un seul point d'accès à l'API** ([api.js](frontend/src/services/api.js)) : URL, token et erreurs gérés une fois.
 - **CSS écrit à la main** : la maquette impose une identité précise, pas de framework à contourner. Toutes les valeurs (couleurs, arrondis, ombres, durées) sont des variables dans [theme.css](frontend/src/styles/theme.css), avec un seul système de boutons (`.btn` + `.btn-primary`, `.btn-outline`, `.btn-ghost`, `.btn-danger`).
-- **Back découpé en 3 apps** (une par domaine), chacune avec `models`, `serializers`, `views`, `urls`, `admin`, `tests/`.
+- **Back découpé en 4 apps** (une par domaine), chacune avec `models`, `serializers`, `views`, `urls`, `admin`, `tests/`.
 
 ## Bibliothèques
 
