@@ -159,6 +159,11 @@ class CurrentUserView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["get", "patch", "delete", "head", "options"]
+    throttle_scope = "account_delete"
+
+    def get_throttles(self):
+        """Limite les suppressions : chacune vérifie un mot de passe, donc devinable sans limite."""
+        return [ScopedRateThrottle()] if self.request.method == "DELETE" else []
 
     def get_object(self):
         """Renvoie l'utilisateur du token : pas d'id dans l'URL, donc pas d'accès aux autres profils."""

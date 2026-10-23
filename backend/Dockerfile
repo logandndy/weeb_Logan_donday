@@ -35,7 +35,13 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD python -c "import os, urllib.request; urllib.request.urlopen(f'http://localhost:{os.environ[\"PORT\"]}/api/ping/')"
 
-# Au démarrage : on applique les migrations puis on lance gunicorn.
+# Au démarrage : migrations, puis nettoyage (messages de contact de plus de
+# 12 mois, tokens expirés de la liste noire), puis gunicorn. Render arrête le
+# service quand il est inactif : le nettoyage tourne donc à chaque réveil.
+# `exec` : gunicorn remplace le shell et reçoit lui-même le signal d'arrêt de
+# Docker, il termine alors proprement les requêtes en cours.
 # 2 workers : suffisant pour le trafic du blog et adapté aux 512 Mo de l'offre gratuite.
 CMD python manage.py migrate --noinput && \
-    gunicorn weeb_api.wsgi:application --bind 0.0.0.0:${PORT} --workers 2 --access-logfile -
+    python manage.py purger_contacts && \
+    python manage.py flushexpiredtokens && \
+    exec gunicorn weeb_api.wsgi:application --bind 0.0.0.0:${PORT} --workers 2 --access-logfile -

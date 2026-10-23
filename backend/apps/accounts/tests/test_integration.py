@@ -510,6 +510,16 @@ class MonEspaceTests(ThrottleResetMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertTrue(get_user_model().objects.filter(pk=self.user.pk).exists())
 
+    def test_suppression_bloquee_apres_5_essais_par_heure(self):
+        """Elle vérifie un mot de passe : sans limite, on pourrait le deviner par essais."""
+        for _ in range(5):
+            self.client.delete("/api/auth/me/", {"password": "mauvais"}, format="json")
+
+        response = self.client.delete("/api/auth/me/", {"password": VALID_PASSWORD}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertEqual(self.client.get("/api/auth/me/").status_code, status.HTTP_200_OK)
+
     def test_supprimer_son_compte_efface_aussi_ses_articles(self):
         make_article(self.user)
 

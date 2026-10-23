@@ -60,8 +60,8 @@ export default defineConfig({
         BREVO_API_KEY: '',
         SENTRY_DSN: '',
       },
-      // Toujours un serveur neuf : redémarrer runserver remet aussi à zéro
-      // les compteurs de limitation de débit (stockés en mémoire).
+      // Toujours un serveur neuf, sur une base neuve : les compteurs de
+      // limitation de débit (gardés en base) repartent ainsi de zéro.
       reuseExistingServer: false,
       timeout: 120_000,
     },

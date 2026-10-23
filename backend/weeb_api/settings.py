@@ -179,9 +179,24 @@ REST_FRAMEWORK = {
         "signup": "10/hour",
         "password_reset": "5/hour",
         "password_change": "5/hour",
+        "account_delete": "5/hour",
         "contact": "10/hour",
         "newsletter": "10/hour",
     },
+    # Nombre de proxys devant Django (Vercel, puis Render). Il permet de lire la
+    # vraie adresse IP du visiteur dans X-Forwarded-For, sans croire une valeur
+    # qu'il aurait inventée. Réglé sur Render après lecture des logs de production.
+    "NUM_PROXIES": int(os.environ["NUM_PROXIES"]) if os.environ.get("NUM_PROXIES") else None,
+}
+
+# Les compteurs de limitation sont gardés en base. En mémoire, chaque worker
+# gunicorn aurait les siens (2 workers : 2 fois plus d'essais permis), remis à
+# zéro à chaque redémarrage. La table est créée par une migration (accounts 0002).
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "weeb_cache",
+    }
 }
 
 SIMPLE_JWT = {
@@ -242,6 +257,17 @@ MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# --- Journaux ---------------------------------------------------------------
+# Sans cette configuration, Django n'affiche les erreurs qu'en mode debug :
+# en production, une erreur 500 n'apparaissait pas dans les logs de Render.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "root": {"handlers": ["console"], "level": "WARNING"},
+}
 
 
 # --- Monitoring des erreurs (Sentry) ---------------------------------------
