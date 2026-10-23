@@ -3,6 +3,7 @@ import { authApi } from '../../services/api';
 import useForm from '../../hooks/useForm';
 import FormField from '../../components/FormField';
 import FormMessage from '../../components/FormMessage';
+import usePageTitle from '../../hooks/usePageTitle';
 
 /**
  * Choix d'un nouveau mot de passe.
@@ -11,6 +12,7 @@ import FormMessage from '../../components/FormMessage';
  * dans la chaîne de requête du lien envoyé par email.
  */
 const ResetPassword = () => {
+  usePageTitle('Nouveau mot de passe');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const uid = searchParams.get('uid');

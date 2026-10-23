@@ -4,9 +4,11 @@ import { authApi } from '../../services/api';
 import useForm from '../../hooks/useForm';
 import FormField from '../../components/FormField';
 import FormMessage from '../../components/FormMessage';
+import usePageTitle from '../../hooks/usePageTitle';
 
 /** Demande d'un lien de réinitialisation de mot de passe. */
 const ForgotPassword = () => {
+  usePageTitle('Mot de passe oublié');
   const [feedback, setFeedback] = useState('');
   const { values, error, isSubmitting, handleChange, submit } = useForm({ email: '' });
 

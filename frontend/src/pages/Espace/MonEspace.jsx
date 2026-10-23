@@ -11,6 +11,7 @@ import ArticleCard from '../Blog/ArticleCard';
 import { formatDate } from '../../utils/format';
 import '../../styles/Blog.css';
 import '../../styles/Account.css';
+import usePageTitle from '../../hooks/usePageTitle';
 
 /**
  * Page Mon espace : tout ce qu'un membre peut gérer lui-même.
@@ -19,6 +20,7 @@ import '../../styles/Account.css';
  * brouillons, changer son mot de passe ou supprimer son compte.
  */
 const MonEspace = () => {
+  usePageTitle('Mon espace');
   const { user } = useAuth();
 
   return (

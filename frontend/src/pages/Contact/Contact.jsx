@@ -4,11 +4,13 @@ import { contactApi } from '../../services/api';
 import useForm from '../../hooks/useForm';
 import FormField from '../../components/FormField';
 import FormMessage from '../../components/FormMessage';
+import usePageTitle from '../../hooks/usePageTitle';
 
 const EMPTY_FORM = { last_name: '', first_name: '', email: '', message: '' };
 
 /** Page Contact : envoie le message saisi vers l'API. */
 const Contact = () => {
+  usePageTitle('Contact');
   const [feedback, setFeedback] = useState('');
   const { values, setValues, fieldErrors, error, isSubmitting, handleChange, submit } = useForm(EMPTY_FORM);
 

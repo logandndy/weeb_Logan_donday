@@ -43,6 +43,12 @@ describe('<Login>', () => {
     expect(login).toHaveBeenCalledWith('ada@weeb.fr', 'MotDePasse!2026');
   });
 
+  it('donne son propre titre à l’onglet', () => {
+    renderLogin(vi.fn());
+
+    expect(document.title).toBe('Connexion · Weeb');
+  });
+
   it('redirige vers le blog après une connexion réussie', async () => {
     const login = vi.fn().mockResolvedValue({ id: 1, first_name: 'Ada' });
     renderLogin(login);

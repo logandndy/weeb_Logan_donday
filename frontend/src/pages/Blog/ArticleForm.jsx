@@ -5,6 +5,7 @@ import useFetch from '../../hooks/useFetch';
 import useForm from '../../hooks/useForm';
 import FormField from '../../components/FormField';
 import FormMessage from '../../components/FormMessage';
+import usePageTitle from '../../hooks/usePageTitle';
 import '../../styles/Blog.css';
 
 const EMPTY_ARTICLE = {
@@ -25,6 +26,7 @@ const ArticleForm = () => {
   const { slug } = useParams();
   const { user } = useAuth();
   const isEditing = slug !== undefined;
+  usePageTitle(isEditing ? 'Modifier l’article' : 'Nouvel article');
   const { data, isLoading, error } = useFetch(
     () => (isEditing ? articlesApi.retrieve(slug) : Promise.resolve(null)),
     [slug],

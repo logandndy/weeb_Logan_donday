@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { newsletterApi } from '../../services/api';
 import useForm from '../../hooks/useForm';
 import FormMessage from '../../components/FormMessage';
+import usePageTitle from '../../hooks/usePageTitle';
 
 /**
  * Désinscription de la newsletter, depuis le lien reçu dans l'email de bienvenue.
@@ -11,6 +12,7 @@ import FormMessage from '../../components/FormMessage';
  * les liens des emails tout seuls, ils ne doivent pas désinscrire les gens.
  */
 const Desinscription = () => {
+  usePageTitle('Désinscription');
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const [confirmation, setConfirmation] = useState('');

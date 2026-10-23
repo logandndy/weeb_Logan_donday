@@ -3,9 +3,11 @@ import useAuth from '../../hooks/useAuth';
 import useForm from '../../hooks/useForm';
 import FormField from '../../components/FormField';
 import FormMessage from '../../components/FormMessage';
+import usePageTitle from '../../hooks/usePageTitle';
 
 /** Page de connexion. */
 const Login = () => {
+  usePageTitle('Connexion');
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();

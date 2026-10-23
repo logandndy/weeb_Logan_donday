@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import '../styles/Blog.css';
 import '../styles/Legal.css';
+import usePageTitle from '../hooks/usePageTitle';
 
 // Ce que le site collecte réellement, pourquoi, et combien de temps.
 // Chaque durée correspond à un mécanisme existant (suppression du compte,
@@ -28,6 +29,7 @@ const DONNEES = [
 
 /** Politique de confidentialité : ce que Weeb fait de vos données (RGPD). */
 const Confidentialite = () => {
+  usePageTitle('Confidentialité');
   return (
     <article className="article-page legal-page">
       <header className="article-header">
@@ -75,15 +77,18 @@ const Confidentialite = () => {
         <h2>Où sont-elles stockées ?</h2>
         <p>
           Dans l&apos;Union européenne. Le serveur et la base de données sont hébergés à Francfort.
-          Les emails partent par Brevo, un service français. Les erreurs techniques du site sont
-          suivies avec Sentry, sans votre adresse IP ni aucune donnée personnelle.
+          Les pages du site sont servies par Vercel, un hébergeur américain, qui transmet aussi vos
+          échanges au serveur. Les emails partent par Brevo, un service français. Les erreurs
+          techniques du site sont suivies avec Sentry, sans votre adresse IP ni aucune donnée
+          personnelle. Aucun autre service n&apos;est appelé : même la police d&apos;écriture est
+          fournie par le site.
         </p>
 
         <h2>Et les cookies ?</h2>
         <p>
           Nous n&apos;utilisons aucun cookie publicitaire ni de mesure d&apos;audience. Quand vous
-          êtes connecté, votre navigateur garde seulement de quoi vous laisser connecté. Ce stockage
-          est indispensable et disparaît à la déconnexion.
+          êtes connecté, un seul cookie vous garde connecté. Il est indispensable, illisible par
+          les scripts de la page, et supprimé à la déconnexion.
         </p>
 
         <h2>Vos droits</h2>
