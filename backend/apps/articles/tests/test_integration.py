@@ -48,6 +48,12 @@ class ArticleLectureTests(ArticleTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["title"], self.article.title)
 
+    def test_article_inexistant_message_en_francais(self):
+        response = self.client.get("/api/articles/n-existe-pas/")
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data["detail"], "Contenu introuvable.")
+
     def test_les_brouillons_sont_masques_aux_visiteurs(self):
         response = self.client.get("/api/articles/")
 

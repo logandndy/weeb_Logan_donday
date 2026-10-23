@@ -57,9 +57,8 @@ const Login = () => {
             Mot de passe oublié ?
           </Link>
           <p className="create-account">
-            Vous n&apos;avez pas de compte ? Vous
-            <br />
-            pouvez en <Link to="/signup">créer un compte</Link>
+            Vous n&apos;avez pas de compte ? <br />
+            <Link to="/signup">Créer un compte</Link>
           </p>
         </div>
       </div>

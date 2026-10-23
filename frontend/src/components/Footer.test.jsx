@@ -17,11 +17,20 @@ function renderFooter() {
 }
 
 describe('<Footer>', () => {
-  it('relie les liens de la maquette aux vraies pages', () => {
+  it('ne propose que des liens vers de vraies pages', () => {
     renderFooter();
 
-    expect(screen.getByRole('link', { name: 'Blog' })).toHaveAttribute('href', '/blog');
-    expect(screen.getByRole('link', { name: 'Help Center' })).toHaveAttribute('href', '/contact');
+    const hrefs = screen.getAllByRole('link').map((link) => link.getAttribute('href'));
+    expect(hrefs).toEqual([
+      '/',
+      '/blog',
+      '/contact',
+      '/signup',
+      '/login',
+      '/blog/nouveau',
+      '/confidentialite',
+      '/confidentialite',
+    ]);
   });
 
   it('inscrit vraiment l’adresse à la newsletter', async () => {
