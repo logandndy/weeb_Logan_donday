@@ -22,12 +22,6 @@
   margin: 0;
 }
 
-.account-write-btn {
-  display: inline-block;
-  margin: 0;
-  text-decoration: none;
-}
-
 /* Deux cartes côte à côte : informations et mot de passe. */
 .account-grid {
   display: grid;
@@ -43,9 +37,9 @@
 /* Même cadre violet que les formulaires de connexion et de contact. */
 .account-card,
 .account-danger {
-  background-color: #c084fc1a;
-  border: 3px solid rgba(168, 85, 247, 0.3);
-  border-radius: 12px;
+  background-color: var(--fond-carte);
+  border: 3px solid var(--violet-bord);
+  border-radius: var(--rayon-l);
   padding: 35px;
 }
 
@@ -54,15 +48,9 @@
 }
 
 .account-info {
-  color: #9ca3af;
+  color: var(--texte-doux);
   line-height: 1.6;
   margin: 0 0 30px;
-}
-
-.account-btn {
-  width: 100%;
-  padding: 14px;
-  border-radius: 12px;
 }
 
 /* Zone sensible : bordure rouge, pour qu'on ne supprime pas son compte par erreur. */

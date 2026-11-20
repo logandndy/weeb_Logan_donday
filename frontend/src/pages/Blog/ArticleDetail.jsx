@@ -61,7 +61,8 @@ const ArticleDetail = () => {
       <header className="article-header">
         <h1>{article.title}</h1>
         <p className="article-meta">
-          Par {article.author.full_name} · {formatDate(article.created_at)}
+          Par {article.author.full_name} · {formatDate(article.created_at)} ·{' '}
+          {article.reading_time} min de lecture
           {!article.is_published && <span className="article-draft-badge">Brouillon</span>}
         </p>
         {article.excerpt && <p className="article-excerpt">{article.excerpt}</p>}
@@ -88,10 +89,10 @@ const ArticleDetail = () => {
 
       {canEdit && (
         <div className="article-actions">
-          <Link to={`/blog/${article.slug}/modifier`} className="btn-primary">
+          <Link to={`/blog/${article.slug}/modifier`} className="btn btn-primary">
             Modifier
           </Link>
-          <button type="button" className="btn-danger" onClick={handleDelete} disabled={isDeleting}>
+          <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={isDeleting}>
             {isDeleting ? 'Suppression...' : 'Supprimer'}
           </button>
         </div>

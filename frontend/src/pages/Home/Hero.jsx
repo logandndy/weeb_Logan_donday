@@ -17,10 +17,10 @@ const Hero = () => {
           notre blog vous offre du contenu de qualité pour rester à la pointe.
         </p>
         <div className="hero-btns-row">
-          <Link to="/blog" className="btn-filled-purple">
+          <Link to="/blog" className="btn btn-primary btn-lg">
             Découvrir les articles
           </Link>
-          <a href="#newsletter" className="btn-outline-white">
+          <a href="#newsletter" className="btn btn-outline btn-lg">
             S'abonner à la newsletter
           </a>
         </div>

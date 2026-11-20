@@ -2,7 +2,7 @@
 
 .blog-page {
   min-height: 80vh;
-  color: #ffffff;
+  color: var(--blanc);
   padding: 120px 5% 80px;
   max-width: 1200px;
   margin: 0 auto;
@@ -22,31 +22,29 @@
 }
 
 .blog-header .highlight {
-  color: #a855f7;
+  color: var(--violet);
 }
 
 .blog-header p {
   font-size: 1.1rem;
-  color: #9ca3af;
+  color: var(--texte-doux);
   line-height: 1.6;
 }
 
 .blog-new-btn {
-  display: inline-block;
   margin-top: 30px;
-  text-decoration: none;
 }
 
 /* --- Messages d'état (chargement, erreur, liste vide) --- */
 
 .blog-status {
   text-align: center;
-  color: #9ca3af;
+  color: var(--texte-doux);
   padding: 40px 20px;
 }
 
 .blog-status--error {
-  color: #fca5a5;
+  color: var(--rouge-clair);
 }
 
 /* --- Grille des articles --- */
@@ -58,20 +56,20 @@
 }
 
 .article-card {
-  background-color: #c084fc1a;
-  border: 1px solid rgba(168, 85, 247, 0.3);
-  border-radius: 12px;
+  background-color: var(--fond-carte);
+  border: 1px solid var(--violet-bord);
+  border-radius: var(--rayon-l);
   overflow: hidden;
   transition:
-    transform 0.3s ease,
-    border-color 0.3s ease,
-    box-shadow 0.3s ease;
+    transform var(--duree) ease,
+    border-color var(--duree) ease,
+    box-shadow var(--duree) ease;
 }
 
 .article-card:hover {
   transform: translateY(-6px);
-  border-color: #a855f7;
-  box-shadow: 0 12px 30px rgba(168, 85, 247, 0.2);
+  border-color: var(--violet);
+  box-shadow: var(--ombre-violette);
 }
 
 .article-card-link {
@@ -81,7 +79,7 @@
 }
 
 .article-card-link:focus-visible {
-  outline: 2px solid #a855f7;
+  outline: 2px solid var(--violet);
   outline-offset: 4px;
 }
 
@@ -98,17 +96,38 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.4s ease;
+  transition: transform var(--duree) ease;
 }
 
 .article-card:hover .article-card-cover img {
   transform: scale(1.05);
 }
 
-.article-card-placeholder {
-  font-size: 2rem;
-  font-weight: bold;
-  color: rgba(168, 85, 247, 0.4);
+/* Couverture générée quand l'article n'a pas d'image : un dégradé dans la
+   teinte de l'article (--teinte, calculée dans ArticleCard) et son initiale. */
+.article-card-generated {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 25% 20%, hsl(var(--teinte) 90% 70% / 0.5), transparent 55%),
+    radial-gradient(circle at 85% 90%, hsl(calc(var(--teinte) + 30) 80% 55% / 0.35), transparent 50%),
+    linear-gradient(135deg, hsl(var(--teinte) 60% 18%), #0d0d24);
+  transition: transform var(--duree) ease;
+}
+
+.article-card-generated span {
+  font-size: 5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+}
+
+.article-card:hover .article-card-generated {
+  transform: scale(1.05);
 }
 
 .article-card-body {
@@ -122,16 +141,71 @@
 }
 
 .article-card-excerpt {
-  color: #9ca3af;
+  color: var(--texte-doux);
   font-size: 0.95rem;
   line-height: 1.6;
   margin: 0 0 18px;
 }
 
 .article-card-meta {
-  color: #a855f7;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  color: var(--violet);
   font-size: 0.85rem;
   margin: 0;
+}
+
+.article-card-reading {
+  color: var(--texte-doux);
+}
+
+.article-card-meta .article-draft-badge {
+  margin-left: 0;
+}
+
+/* Article mis en avant en haut du blog : toute la largeur, image à gauche. */
+.article-card--featured {
+  grid-column: 1 / -1;
+}
+
+.article-card--featured .article-card-link {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+}
+
+.article-card--featured .article-card-cover {
+  height: 100%;
+  min-height: 320px;
+}
+
+.article-card--featured .article-card-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 40px;
+}
+
+.article-card--featured .article-card-body h2 {
+  font-size: 2rem;
+}
+
+.article-card--featured .article-card-generated span {
+  font-size: 8rem;
+}
+
+.article-card-label {
+  align-self: flex-start;
+  margin: 0 0 15px;
+  padding: 4px 12px;
+  border-radius: var(--rayon-rond);
+  background-color: var(--violet-halo);
+  color: var(--violet-clair);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 /* --- Pagination --- */
@@ -146,19 +220,19 @@
 
 .blog-pagination button {
   background: transparent;
-  border: 1px solid #4b5563;
-  color: #ffffff;
+  border: 1px solid var(--gris-bord);
+  color: var(--blanc);
   padding: 10px 20px;
-  border-radius: 6px;
+  border-radius: var(--rayon-s);
   cursor: pointer;
   transition:
-    border-color 0.3s ease,
-    color 0.3s ease;
+    border-color var(--duree) ease,
+    color var(--duree) ease;
 }
 
 .blog-pagination button:hover:not(:disabled) {
-  border-color: #a855f7;
-  color: #a855f7;
+  border-color: var(--violet);
+  color: var(--violet);
 }
 
 .blog-pagination button:disabled {
@@ -167,7 +241,7 @@
 }
 
 .blog-pagination span {
-  color: #9ca3af;
+  color: var(--texte-doux);
 }
 
 /* --- Page de détail d'un article --- */
@@ -176,7 +250,7 @@
   max-width: 780px;
   margin: 0 auto;
   padding: 120px 5% 80px;
-  color: #ffffff;
+  color: var(--blanc);
 }
 
 .article-back {
@@ -191,7 +265,7 @@
 }
 
 .article-meta {
-  color: #a855f7;
+  color: var(--violet);
   font-size: 0.95rem;
   margin: 0 0 25px;
 }
@@ -200,14 +274,14 @@
   display: inline-block;
   margin-left: 12px;
   padding: 3px 10px;
-  border: 1px solid #4b5563;
-  border-radius: 999px;
-  color: #9ca3af;
+  border: 1px solid var(--gris-bord);
+  border-radius: var(--rayon-rond);
+  color: var(--texte-doux);
   font-size: 0.75rem;
 }
 
 .article-excerpt {
-  color: #9ca3af;
+  color: var(--texte-doux);
   font-size: 1.15rem;
   line-height: 1.7;
   font-style: italic;
@@ -216,7 +290,7 @@
 
 .article-cover {
   width: 100%;
-  border-radius: 12px;
+  border-radius: var(--rayon-l);
   margin-bottom: 40px;
 }
 
@@ -234,11 +308,6 @@
   border-top: 1px solid rgba(168, 85, 247, 0.2);
 }
 
-.article-actions .btn-primary {
-  margin: 0;
-  text-decoration: none;
-}
-
 /* --- Formulaire d'ajout et de modification --- */
 
 .article-form-page {
@@ -249,9 +318,9 @@
 }
 
 .article-form-container {
-  background-color: #c084fc1a;
-  border: 3px solid rgba(168, 85, 247, 0.3);
-  border-radius: 12px;
+  background-color: var(--fond-carte);
+  border: 3px solid var(--violet-bord);
+  border-radius: var(--rayon-l);
   padding: 40px;
   width: 100%;
   max-width: 760px;
@@ -289,13 +358,27 @@
   margin-top: 30px;
 }
 
-.article-form-actions .btn-primary {
-  margin: 0;
-}
-
 @media (max-width: 992px) {
   .articles-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .article-card--featured .article-card-link {
+    grid-template-columns: 1fr;
+  }
+
+  .article-card--featured .article-card-cover {
+    min-height: 200px;
+  }
+
+  .article-card--featured .article-card-body {
+    padding: 25px;
+  }
+
+  .article-card--featured .article-card-body h2 {
+    font-size: 1.5rem;
   }
 }
 

@@ -28,7 +28,7 @@ const Blog = () => {
         </p>
 
         {isAuthenticated && (
-          <Link to="/blog/nouveau" className="btn-primary blog-new-btn">
+          <Link to="/blog/nouveau" className="btn btn-primary blog-new-btn">
             Écrire un article
           </Link>
         )}
@@ -47,8 +47,9 @@ const Blog = () => {
       )}
 
       <div className="articles-grid">
-        {articles.map((article) => (
-          <ArticleCard key={article.id} article={article} />
+        {/* Le plus récent est mis en avant, seulement en première page. */}
+        {articles.map((article, index) => (
+          <ArticleCard key={article.id} article={article} featured={page === 1 && index === 0} />
         ))}
       </div>
 

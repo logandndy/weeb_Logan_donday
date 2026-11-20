@@ -106,10 +106,10 @@ function ArticleFormFields({ slug, initialValues }) {
           </label>
 
           <div className="article-form-actions">
-            <button type="submit" className="btn-primary" disabled={isSubmitting}>
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
               {isSubmitting ? 'Enregistrement...' : 'Enregistrer'}
             </button>
-            <button type="button" className="btn-ghost" onClick={() => navigate('/blog')}>
+            <button type="button" className="btn btn-ghost" onClick={() => navigate('/blog')}>
               Annuler
             </button>
           </div>

@@ -45,7 +45,7 @@ const Desinscription = () => {
               Vous ne souhaitez plus recevoir nos articles par email ? Votre adresse sera
               définitivement supprimée.
             </p>
-            <button type="submit" className="btn-primary login-btn" disabled={isSubmitting}>
+            <button type="submit" className="btn btn-primary btn-block" disabled={isSubmitting}>
               {isSubmitting ? 'Désinscription...' : 'Me désinscrire'}
             </button>
           </form>

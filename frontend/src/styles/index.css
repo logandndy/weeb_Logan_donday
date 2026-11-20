@@ -1,15 +1,72 @@
+/* Fond nuit avec deux halos violets très doux : de la profondeur sans
+   changer de couleur. Les halos restent fixes pendant le défilement. */
 body {
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
-  background-color: #050614;
-  color: white;
+  background:
+    radial-gradient(60rem 40rem at 90% -10%, rgba(168, 85, 247, 0.14), transparent 60%),
+    radial-gradient(50rem 35rem at -15% 45%, rgba(147, 51, 234, 0.08), transparent 60%),
+    var(--fond);
+  background-attachment: fixed;
+  color: var(--blanc);
   font-family: "Inter", sans-serif;
   overflow-x: hidden;
 }
 
+/* Grain très léger par-dessus le fond, sous le contenu : casse l'effet
+   « noir plat » des grands aplats sombres. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
 * {
   box-sizing: border-box;
+}
+
+/* Mise en page en colonne : le contenu prend toute la place disponible, le
+   pied de page reste donc en bas même sur une page courte (article, 404). */
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main {
+  flex: 1;
+}
+
+/* Arrivée sur une page : léger fondu, pour que la navigation paraisse fluide. */
+.app-main > * {
+  animation: page-in 0.4s ease both;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Réglage système « réduire les animations » : tout mouvement est coupé. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Navigation au clavier : contour visible sur tout élément atteint avec Tab.
@@ -17,7 +74,7 @@ body {
 a:focus-visible,
 button:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid #a855f7;
+  outline: 2px solid var(--violet);
   outline-offset: 3px;
   border-radius: 4px;
 }
@@ -26,7 +83,7 @@ button:focus-visible,
 .login-page,
 .signup-page {
   min-height: 100vh;
-  color: #ffffff;
+  color: var(--blanc);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -46,16 +103,16 @@ button:focus-visible,
 }
 
 .contact-header p {
-  color: #9ca3af;
+  color: var(--texte-doux);
   line-height: 1.6;
 }
 
 .contact-form-container,
 .login-container,
 .signup-container {
-  background-color: #c084fc1a;
-  border: 3px solid rgba(168, 85, 247, 0.3);
-  border-radius: 12px;
+  background-color: var(--fond-carte);
+  border: 3px solid var(--violet-bord);
+  border-radius: var(--rayon-l);
   padding: 40px;
   width: 100%;
   max-width: 700px;
@@ -94,15 +151,15 @@ button:focus-visible,
 .input-group textarea {
   width: 100%;
   background: transparent;
-  border: 1px solid #4b5563;
-  border-radius: 8px;
-  color: #ffffff;
+  border: 1px solid var(--gris-bord);
+  border-radius: var(--rayon);
+  color: var(--blanc);
   padding: 14px 15px;
   font-size: 1rem;
   outline: none;
   transition:
-    border-color 0.3s ease,
-    box-shadow 0.3s ease;
+    border-color var(--duree) ease,
+    box-shadow var(--duree) ease;
   box-sizing: border-box;
 }
 
@@ -111,14 +168,41 @@ button:focus-visible,
   min-height: 120px;
 }
 
+/* Champ mot de passe : place pour le bouton « œil » à droite. */
+.input-group--password input {
+  padding-right: 48px;
+}
+
+/* Bouton afficher / masquer le mot de passe, centré sur la hauteur du champ
+   (et non du bloc, qui grandit quand une erreur s'affiche dessous). */
+.password-toggle {
+  position: absolute;
+  top: 25px;
+  right: 10px;
+  transform: translateY(-50%);
+  display: flex;
+  padding: 4px;
+  border: none;
+  border-radius: var(--rayon-s);
+  background: transparent;
+  color: var(--texte-doux);
+  cursor: pointer;
+  transition: color var(--duree) ease;
+}
+
+.password-toggle:hover,
+.password-toggle[aria-pressed="true"] {
+  color: var(--violet);
+}
+
 .input-group label {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: #a855f7;
+  color: var(--violet);
   pointer-events: none;
-  transition: 0.3s ease all;
+  transition: var(--duree) ease all;
 }
 
 .input-group textarea ~ label {
@@ -127,9 +211,9 @@ button:focus-visible,
 
 .input-group input:focus,
 .input-group textarea:focus {
-  border: 1px solid #a855f7;
+  border: 1px solid var(--violet);
   /* Halo en remplacement du contour natif supprimé (outline: none). */
-  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.25);
+  box-shadow: 0 0 0 3px var(--violet-halo);
 }
 
 .input-group input:focus ~ label,
@@ -141,33 +225,19 @@ button:focus-visible,
   left: 50%;
   transform: translate(-50%, 0);
   font-size: 0.8rem;
-  color: #a855f7;
+  color: var(--violet);
 }
 
-.btn-primary {
-  background-color: #a855f7;
-  color: #ffffff;
-  border: none;
-  padding: 12px 30px;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.3s ease;
-  display: block;
-  margin: 0 auto;
-}
 
-.btn-primary:hover {
-  background-color: #9333ea;
-}
-
-.login-btn,
-.signup-btn {
-  width: 100%;
-  padding: 15px;
-  border-radius: 12px;
+.login-form .btn-block,
+.signup-form .btn-block {
   margin-bottom: 20px;
+}
+
+/* Bouton d'envoi du formulaire de contact, centré sous les champs. */
+.contact-submit {
+  display: flex;
+  margin: 0 auto;
 }
 
 .login-links,
@@ -177,7 +247,7 @@ button:focus-visible,
 
 .forgot-password {
   display: block;
-  color: #ffffff;
+  color: var(--blanc);
   text-decoration: none;
   font-weight: bold;
   margin-bottom: 20px;
@@ -185,29 +255,29 @@ button:focus-visible,
 
 .create-account,
 .login-account {
-  color: #9ca3af;
+  color: var(--texte-doux);
   line-height: 1.5;
 }
 
 .create-account a,
 .login-account a {
-  color: #ffffff;
+  color: var(--blanc);
   font-weight: bold;
   text-decoration: underline;
-  text-decoration-color: #a855f7;
+  text-decoration-color: var(--violet);
   text-underline-offset: 4px;
 }
 
 /* --- Retours de formulaire --- */
 
 .form-intro {
-  color: #9ca3af;
+  color: var(--texte-doux);
   line-height: 1.6;
   margin-bottom: 30px;
 }
 
 .form-message {
-  border-radius: 8px;
+  border-radius: var(--rayon);
   padding: 12px 15px;
   margin-bottom: 25px;
   font-size: 0.95rem;
@@ -218,7 +288,7 @@ button:focus-visible,
 .form-message--error {
   background-color: rgba(248, 113, 113, 0.1);
   border: 1px solid rgba(248, 113, 113, 0.4);
-  color: #fca5a5;
+  color: var(--rouge-clair);
 }
 
 .form-message--success {
@@ -233,59 +303,17 @@ button:focus-visible,
   border: none;
   padding: 6px 0 0;
   margin: 0;
-  color: #fca5a5;
+  color: var(--rouge-clair);
   font-size: 0.85rem;
 }
 
-/* --- Boutons secondaires --- */
-
-.btn-danger,
-.btn-ghost {
-  padding: 12px 30px;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: bold;
-  cursor: pointer;
-  transition:
-    background 0.3s ease,
-    border-color 0.3s ease,
-    color 0.3s ease;
-}
-
-.btn-danger {
-  background-color: transparent;
-  border: 1px solid #f87171;
-  color: #f87171;
-}
-
-.btn-danger:hover:not(:disabled) {
-  background-color: #f87171;
-  color: #050614;
-}
-
-.btn-ghost {
-  background-color: transparent;
-  border: 1px solid #4b5563;
-  color: #ffffff;
-}
-
-.btn-ghost:hover {
-  border-color: #a855f7;
-  color: #a855f7;
-}
-
-.btn-primary:disabled,
-.btn-danger:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
 
 /* Case à cocher du formulaire d'article. */
 .checkbox-group {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #9ca3af;
+  color: var(--texte-doux);
   cursor: pointer;
   margin-bottom: 10px;
 }
@@ -293,7 +321,7 @@ button:focus-visible,
 .checkbox-group input {
   width: 18px;
   height: 18px;
-  accent-color: #a855f7;
+  accent-color: var(--violet);
   cursor: pointer;
 }
 
@@ -306,14 +334,14 @@ button:focus-visible,
   align-items: center;
   justify-content: center;
   gap: 20px;
-  color: #9ca3af;
+  color: var(--texte-doux);
 }
 
 .spinner {
   width: 36px;
   height: 36px;
-  border: 3px solid rgba(168, 85, 247, 0.25);
-  border-top-color: #a855f7;
+  border: 3px solid var(--violet-halo);
+  border-top-color: var(--violet);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -338,18 +366,14 @@ button:focus-visible,
 .not-found-code {
   font-size: 5rem;
   font-weight: bold;
-  color: #a855f7;
+  color: var(--violet);
   margin: 0;
   line-height: 1;
 }
 
 .not-found-text {
-  color: #9ca3af;
+  color: var(--texte-doux);
   margin-bottom: 20px;
-}
-
-.not-found-page .btn-primary {
-  text-decoration: none;
 }
 
 /* Tablette */
@@ -380,7 +404,7 @@ button:focus-visible,
   .contact-form-container,
   .login-container,
   .signup-container {
-    background-color: #c084fc1a;
+    background-color: var(--fond-carte);
     padding: 30px 20px;
   }
   .contact-header h1 {
@@ -390,12 +414,12 @@ button:focus-visible,
 
 /* Mention RGPD sous les formulaires qui collectent des données. */
 .form-legal {
-  color: #9ca3af;
+  color: var(--texte-doux);
   font-size: 0.8rem;
   line-height: 1.5;
   margin: 15px 0 0;
 }
 
 .form-legal a {
-  color: #a855f7;
+  color: var(--violet);
 }

@@ -47,7 +47,7 @@ const Login = () => {
           <FormField id="login-password" name="password" type="password" label="Mot de passe *" required
             value={values.password} onChange={handleChange} />
 
-          <button type="submit" className="btn-primary login-btn" disabled={isSubmitting}>
+          <button type="submit" className="btn btn-primary btn-block" disabled={isSubmitting}>
             {isSubmitting ? 'Connexion...' : 'Se connecter'}
           </button>
         </form>

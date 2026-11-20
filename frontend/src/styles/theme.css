@@ -1,0 +1,130 @@
+/* Thème de Weeb : toutes les valeurs de design au même endroit.
+   Pour changer le violet ou un arrondi sur tout le site, on ne touche qu'ici. */
+
+:root {
+  /* Couleurs */
+  --fond: #050614;
+  --fond-carte: #c084fc1a;
+  --violet: #a855f7;
+  --violet-fonce: #9333ea;
+  --violet-clair: #c084fc;
+  --violet-bord: rgba(168, 85, 247, 0.3);
+  --violet-halo: rgba(168, 85, 247, 0.25);
+  --blanc: #ffffff;
+  --texte-doux: #9ca3af;
+  --texte-clair: #d1d5db;
+  --gris-bord: #4b5563;
+  --rouge: #f87171;
+  --rouge-clair: #fca5a5;
+
+  /* Formes */
+  --rayon-s: 6px;
+  --rayon: 8px;
+  --rayon-l: 12px;
+  --rayon-xl: 20px;
+  --rayon-rond: 999px;
+  --ombre: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --ombre-violette: 0 12px 30px rgba(168, 85, 247, 0.2);
+
+  /* Mouvement */
+  --duree: 0.3s;
+}
+
+/* --- Boutons ---
+   Une base `.btn` et quelques variantes, au lieu d'une classe par page :
+   .btn-primary (plein violet), .btn-outline (contour blanc), .btn-ghost
+   (contour gris), .btn-danger (rouge), et deux tailles : .btn-lg, .btn-block. */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  /* Bordure toujours présente (transparente par défaut) : toutes les
+     variantes ont ainsi exactement la même hauteur. */
+  padding: 11px 28px;
+  border: 1px solid transparent;
+  border-radius: var(--rayon);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--duree) ease,
+    border-color var(--duree) ease,
+    color var(--duree) ease,
+    box-shadow var(--duree) ease,
+    transform var(--duree) ease;
+}
+
+/* Au survol, le bouton se soulève légèrement. Au clic, il revient en place. */
+.btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: var(--violet);
+  color: var(--blanc);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--violet-fonce);
+  box-shadow: var(--ombre-violette);
+}
+
+.btn-outline {
+  background-color: transparent;
+  border-color: var(--blanc);
+  color: var(--blanc);
+}
+
+.btn-outline:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.btn-ghost {
+  background-color: transparent;
+  border-color: var(--gris-bord);
+  color: var(--blanc);
+}
+
+.btn-ghost:hover {
+  border-color: var(--violet);
+  color: var(--violet);
+}
+
+.btn-danger {
+  background-color: transparent;
+  border-color: var(--rouge);
+  color: var(--rouge);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: var(--rouge);
+  color: var(--fond);
+}
+
+.btn-lg {
+  padding: 16px 32px;
+  border-width: 2px;
+}
+
+.btn-block {
+  /* Bouton pleine largeur : se comporte comme un bloc (les marges autour
+     fusionnent comme avant avec les paragraphes voisins). */
+  display: flex;
+  width: 100%;
+  padding: 14px;
+  border-radius: var(--rayon-l);
+}
