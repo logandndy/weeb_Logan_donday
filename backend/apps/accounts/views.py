@@ -28,6 +28,8 @@ from .serializers import (
 from .sessions import (
     REFRESH_COOKIE,
     delete_refresh_cookie,
+    remember_rotation,
+    renew_after_lost_rotation,
     revoke_all_sessions,
     set_refresh_cookie,
 )
@@ -95,7 +97,9 @@ class RefreshView(APIView):
     """POST /api/auth/refresh/ — nouveau token d'accès, à partir du cookie de session.
 
     Le cookie est renouvelé à chaque appel (rotation) et l'ancien token est mis
-    sur liste noire : un token volé puis rejoué ne sert qu'une fois.
+    sur liste noire : un token volé puis rejoué ne sert qu'une fois. Seule
+    exception, une rotation dont la réponse s'est perdue (voir
+    renew_after_lost_rotation).
     """
 
     permission_classes = [permissions.AllowAny]
@@ -104,23 +108,30 @@ class RefreshView(APIView):
 
     def post(self, request):
         """Renvoie un token d'accès neuf, ou 401 et efface le cookie si la session est finie."""
-        serializer = TokenRefreshSerializer(data={"refresh": request.COOKIES.get(REFRESH_COOKIE, "")})
+        raw_token = request.COOKIES.get(REFRESH_COOKIE, "")
+        serializer = TokenRefreshSerializer(data={"refresh": raw_token})
         try:
             is_valid = serializer.is_valid()
         except (TokenError, AuthenticationFailed, get_user_model().DoesNotExist):
             # Token expiré ou révoqué, compte suspendu ou supprimé.
             is_valid = False
 
-        if not is_valid:
-            response = Response(
-                {"detail": "Votre session a expiré. Reconnectez-vous."},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
-            delete_refresh_cookie(response)
-            return response
+        if is_valid:
+            access, refresh = serializer.validated_data["access"], serializer.validated_data["refresh"]
+            remember_rotation(raw_token, refresh)
+        else:
+            renewed = renew_after_lost_rotation(raw_token) if raw_token else None
+            if renewed is None:
+                response = Response(
+                    {"detail": "Votre session a expiré. Reconnectez-vous."},
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+                delete_refresh_cookie(response)
+                return response
+            access, refresh = str(renewed.access_token), renewed
 
-        response = Response({"access": serializer.validated_data["access"]})
-        set_refresh_cookie(response, serializer.validated_data["refresh"])
+        response = Response({"access": access})
+        set_refresh_cookie(response, refresh)
         return response
 
 

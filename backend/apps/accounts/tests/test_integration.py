@@ -456,7 +456,46 @@ class SessionsTests(ThrottleResetMixin, APITestCase):
 
     def test_un_token_deja_utilise_ne_resert_pas(self):
         """Rotation : chaque renouvellement donne un nouveau token et grille l'ancien."""
-        self.assertEqual(self.rafraichir(self.refresh).status_code, status.HTTP_200_OK)
+        nouveau = self.rafraichir(self.refresh).cookies[REFRESH_COOKIE].value
+        self.assertEqual(self.rafraichir(nouveau).status_code, status.HTTP_200_OK)
+
+        self.assertEqual(self.rafraichir(self.refresh).status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_une_rotation_dont_la_reponse_s_est_perdue_ne_deconnecte_pas(self):
+        """Page rechargée pendant le renouvellement : le nouveau cookie n'est jamais arrivé."""
+        perdu = self.rafraichir(self.refresh).cookies[REFRESH_COOKIE].value
+
+        rejoue = self.rafraichir(self.refresh)
+
+        self.assertEqual(rejoue.status_code, status.HTTP_200_OK)
+        self.assertIn("access", rejoue.data)
+        # Le cookie perdu ne doit plus servir : une seule session continue.
+        self.assertEqual(self.rafraichir(perdu).status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_le_rattrapage_ne_sert_qu_une_fois(self):
+        self.rafraichir(self.refresh)
+        self.rafraichir(self.refresh)
+
+        self.assertEqual(self.rafraichir(self.refresh).status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_pas_de_rattrapage_apres_une_deconnexion(self):
+        nouveau = self.rafraichir(self.refresh).cookies[REFRESH_COOKIE].value
+        self.client.cookies[REFRESH_COOKIE] = nouveau
+        self.client.post("/api/auth/logout/")
+
+        self.assertEqual(self.rafraichir(self.refresh).status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_pas_de_rattrapage_apres_un_changement_de_mot_de_passe(self):
+        """Toutes les sessions sont révoquées, successeur compris : rien n'est repêché."""
+        self.rafraichir(self.refresh)
+        auth_client(self.client, self.user)
+        self.client.post(
+            "/api/auth/password-change/",
+            {"old_password": VALID_PASSWORD, "new_password": NOUVEAU_MDP, "new_password_confirm": NOUVEAU_MDP},
+            format="json",
+        )
+        self.client.credentials()
+
         self.assertEqual(self.rafraichir(self.refresh).status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_reinitialiser_le_mot_de_passe_deconnecte_partout(self):

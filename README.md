@@ -145,7 +145,7 @@ d'onglet propre à chaque page.
 
 1. **Inscription** : compte créé **inactif**, mot de passe vérifié par les validateurs Django puis haché. Les admins reçoivent un email. Si l'adresse a déjà un compte, la réponse est **exactement la même** (rien n'est créé, le titulaire est prévenu par email) : impossible de tester des adresses pour savoir qui est inscrit.
 2. **Validation** : un admin active le compte (action « Valider les comptes sélectionnés »). La personne reçoit un email. Avant, la connexion renvoie `401`.
-3. **Connexion** : token d'accès (30 min) gardé **en mémoire**, token de rafraîchissement (7 jours) dans un **cookie HttpOnly**. `api.js` renouvelle le token d'accès tout seul, une seule fois même si plusieurs appels expirent ensemble. Chaque renouvellement grille l'ancien token (liste noire).
+3. **Connexion** : token d'accès (30 min) gardé **en mémoire**, token de rafraîchissement (7 jours) dans un **cookie HttpOnly**. `api.js` renouvelle le token d'accès tout seul, une seule fois même si plusieurs appels expirent ensemble. Chaque renouvellement grille l'ancien token (liste noire). Si la réponse se perd (page rechargée pendant le renouvellement), l'ancien token est accepté une seule fois dans les 30 secondes, à condition que son successeur n'ait jamais servi.
 4. **Déconnexion** : le token du cookie est mis sur liste noire côté serveur, puis le cookie est effacé.
 5. **Mot de passe oublié** : lien signé à usage unique, envoyé seulement aux comptes actifs. Réponse identique que l'email existe ou non.
 6. **Changement ou réinitialisation du mot de passe, suspension par un admin** : toutes les sessions du compte sont coupées.
