@@ -208,7 +208,7 @@ l'utilisateur a quitté la page entre-temps. Les erreurs Django
 | Niveau | Outil | Tests |
 |---|---|---|
 | Unitaire (back) | Django, `test_unit.py` | 79 |
-| Intégration (back) | Django + client HTTP, `test_integration.py` | 94 |
+| Intégration (back) | Django + client HTTP, `test_integration.py` | 98 |
 | Front | Vitest + Testing Library | 49 |
 | Bout en bout | Playwright (Chromium) | 12 parcours |
 
