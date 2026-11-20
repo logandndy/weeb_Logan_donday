@@ -3,6 +3,7 @@ import { authApi } from '../../services/api';
 import useForm from '../../hooks/useForm';
 import FormField from '../../components/FormField';
 import FormMessage from '../../components/FormMessage';
+import usePageTitle from '../../hooks/usePageTitle';
 
 const EMPTY_FORM = {
   first_name: '',
@@ -19,6 +20,7 @@ const EMPTY_FORM = {
  * l'utilisateur en est informé avant d'être renvoyé vers la page de connexion.
  */
 const Signup = () => {
+  usePageTitle('Inscription');
   const navigate = useNavigate();
   const { values, fieldErrors, error, isSubmitting, handleChange, submit } = useForm(EMPTY_FORM);
 

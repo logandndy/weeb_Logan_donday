@@ -9,7 +9,7 @@ body {
     var(--fond);
   background-attachment: fixed;
   color: var(--blanc);
-  font-family: "Inter", sans-serif;
+  font-family: "Inter Variable", sans-serif;
   overflow-x: hidden;
 }
 

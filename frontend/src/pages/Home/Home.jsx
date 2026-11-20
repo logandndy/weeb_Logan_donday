@@ -3,8 +3,10 @@ import Partners from './Partners';
 import Features from './Features';
 import '../../styles/Home.css';
 import CTA from './CTA';
+import usePageTitle from '../../hooks/usePageTitle';
 
 const Home = () => {
+  usePageTitle();
   return (
     <div className="home-page">
       <Hero />

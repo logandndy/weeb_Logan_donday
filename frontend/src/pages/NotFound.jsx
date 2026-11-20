@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
+import usePageTitle from '../hooks/usePageTitle';
 
 /** Page affichée pour toute URL qui ne correspond à aucune route. */
 const NotFound = () => {
+  usePageTitle('Page introuvable');
   return (
     <div className="not-found-page">
       <p className="not-found-code">404</p>

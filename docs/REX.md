@@ -82,13 +82,13 @@ flowchart LR
     frontend["<b>frontend</b><br/>lint, tests, build"]
     docker["<b>docker</b><br/>image + démarrage<br/>/api/health/"]
     e2e["<b>e2e</b><br/>parcours Playwright"]
-    deploy["<b>deploy</b><br/>main uniquement<br/>Render + Vercel<br/>smoke tests"]
+    deploy["<b>deploy</b><br/>main uniquement<br/>Render, smoke test,<br/>puis Vercel"]
 ```
 
 | Job | Ce qu'il garantit |
 |---|---|
-| `backend` | Config valide, sécurité de prod sans avertissement, aucune migration oubliée, 162 tests verts sur un vrai PostgreSQL |
-| `frontend` | Code propre (lint), 38 tests verts, application qui compile |
+| `backend` | Config valide, sécurité de prod sans avertissement, aucune migration oubliée, 173 tests verts sur un vrai PostgreSQL |
+| `frontend` | Code propre (lint), 49 tests verts, application qui compile |
 | `docker` | L'image se construit **et démarre** |
 | `e2e` | Les parcours utilisateur marchent, front + API réunis |
 | `deploy` | La nouvelle version est réellement en ligne |
@@ -99,6 +99,10 @@ flowchart LR
 - `deploy` : `needs: [backend, frontend, docker, e2e]` + `if: push sur main`. Un seul échec = **la production garde l'ancienne version**.
 - Seul le pipeline déploie : déploiement automatique **désactivé** chez Render (`autoDeployTrigger: "off"`) et Vercel (`deploymentEnabled: false`). Sinon ils déploieraient sans attendre les tests.
 - **Smoke test** : le pipeline attend que `/api/health/` renvoie **le SHA du commit poussé**. Un simple 200 ne suffit pas, l'ancienne version répond 200 aussi.
+- **L'API d'abord, le front ensuite** : le front n'est mis en ligne que si la nouvelle API répond. Un dernier test vérifie que le site relaie bien `/api`.
+- **Droits minimum** (`permissions: contents: read`) et **version de la CLI Vercel épinglée** : une mise à jour extérieure ne peut pas casser le déploiement par surprise.
+- **Dependabot** ([dependabot.yml](../.github/dependabot.yml)) ouvre chaque semaine une PR par dépendance à mettre à jour (pip, npm, image Docker, actions). La CI la teste comme les autres.
+- **Versions fixées** : Python 3.13 ([.python-version](../.python-version)) et Node 24 ([.nvmrc](../.nvmrc)), lues par la CI. Le poste de dev, la CI et l'image Docker utilisent les mêmes.
 - **Secrets** (hook Render, token Vercel) dans l'environnement GitHub `production`, lisibles par le seul job `deploy`, masqués dans les logs.
 - `cancel-in-progress` : un nouveau push annule le pipeline précédent devenu inutile.
 
@@ -125,7 +129,7 @@ Choix du [Dockerfile](../backend/Dockerfile) :
 | Dépendances installées **avant** le code | Cache Docker : pas de réinstallation si `requirements.txt` ne change pas |
 | Utilisateur non-root | Une faille ne donne pas les droits root du conteneur |
 | `HEALTHCHECK` sur `/api/ping/` | Docker sait si l'API répond, sans réveiller la base toutes les 30 s |
-| `migrate` puis `gunicorn --workers 2` | Pas d'étape pré-déploiement en gratuit ; 2 workers tiennent dans 512 Mo |
+| `migrate`, nettoyage, puis `exec gunicorn --workers 2` | Pas d'étape pré-déploiement en gratuit. Le nettoyage (messages de plus de 12 mois, tokens expirés) tourne à chaque démarrage, faute de tâche planifiée en gratuit. `exec` : gunicorn reçoit lui-même le signal d'arrêt et termine proprement. 2 workers tiennent dans 512 Mo |
 
 `.dockerignore` exclut `venv/`, la base locale et `.env` (secrets).
 `.gitattributes` force les fins de ligne LF : sous Windows, des CRLF cassent les scripts Linux.
@@ -143,7 +147,7 @@ Choix du [Dockerfile](../backend/Dockerfile) :
 - API et base dans **la même région** : faible latence, données dans l'UE (RGPD).
 - [render.yaml](../render.yaml) décrit le service (*Infrastructure as Code*). `SECRET_KEY` est générée par Render, les autres secrets saisis dans le dashboard : aucun dans Git.
 - Render ne bascule le trafic que si la nouvelle version passe son health check : **un déploiement raté ne coupe pas le site**.
-- `VITE_API_URL` est **gravée au build** du front : la changer impose un redéploiement.
+- Le front appelle **`/api` sur son propre domaine**, Vercel relaie vers Render ([vercel.json](../frontend/vercel.json)). Aucune adresse d'API n'est gravée au build, et CORS n'est plus nécessaire. Le cache de Vercel est désactivé sur `/api` : une réponse qui pose un cookie de session ne doit jamais être servie à quelqu'un d'autre.
 
 | Contrainte de l'offre gratuite | Réponse |
 |---|---|
@@ -170,8 +174,8 @@ flowchart LR
     uptime[UptimeRobot]
     mail([Email])
 
-    user -- pages --> front
-    user -- "JSON + JWT (CORS)" --> api
+    user -- "pages + /api" --> front
+    front -- "relais /api" --> api
     api -- SQL / TLS --> db
     front -. erreurs .-> sentry
     api -. erreurs .-> sentry
@@ -185,8 +189,8 @@ flowchart LR
 
 | Composant | Rôle |
 |---|---|
-| **Vercel** | Sert le front. Sert aussi de relais `/monitoring` vers Sentry, pour passer les bloqueurs de pub |
-| **Render** | Fait tourner l'API. N'accepte que les appels venant du domaine Vercel (CORS) |
+| **Vercel** | Sert le front et ses en-têtes de sécurité (CSP). Relaie `/api` vers Render et `/monitoring` vers Sentry : le navigateur ne parle qu'à un seul domaine |
+| **Render** | Fait tourner l'API |
 | **Neon** | Stocke utilisateurs, articles et messages. Accessible seulement par l'API |
 | **GitHub Actions** | Teste puis déploie |
 | **Sentry / UptimeRobot** | Erreurs et disponibilité, avec alerte email |
@@ -200,10 +204,10 @@ tests lents mais réalistes.
 
 | Niveau | Outil | Question posée | Tests |
 |---|---|---|---|
-| Unitaire | Django (`test_unit.py`) | Cette brique seule fonctionne-t-elle ? (modèle, validation, permission, email) | 76 |
-| Intégration | Django + client HTTP (`test_integration.py`) | Vue, base, JWT et limites fonctionnent-ils ensemble ? | 86 |
-| Front | Vitest + Testing Library | `api.js`, session et écrans réagissent-ils bien ? | 38 |
-| Bout en bout | Playwright (Chromium) | Un utilisateur arrive-t-il au bout de son parcours ? | 10 parcours |
+| Unitaire | Django (`test_unit.py`) | Cette brique seule fonctionne-t-elle ? (modèle, validation, permission, email) | 79 |
+| Intégration | Django + client HTTP (`test_integration.py`) | Vue, base, JWT et limites fonctionnent-ils ensemble ? | 94 |
+| Front | Vitest + Testing Library | `api.js`, session et écrans réagissent-ils bien ? | 49 |
+| Bout en bout | Playwright (Chromium) | Un utilisateur arrive-t-il au bout de son parcours ? | 12 parcours |
 
 **Ce que j'ai testé en priorité** : ce qui coûterait cher si ça cassait.
 
@@ -216,20 +220,21 @@ tests lents mais réalistes.
 | Modifier / supprimer | 401 | oui | **403** | oui |
 
 - **L'authentification** : compte non validé refusé, compte suspendu après connexion refusé, parcours complet de réinitialisation (lien à usage unique, expiré), limitation des requêtes.
-- **Les parcours E2E** : visiteur qui lit le blog, inscription, publication / modification / suppression d'un article, contact, mot de passe oublié.
+- **Les parcours E2E** : visiteur qui lit le blog, inscription, publication / modification / suppression d'un article, contact, mot de passe oublié, session (rechargement, token illisible par le JavaScript, déconnexion).
 
 **Choix de mise en œuvre**
 
 - Les tests portent un **tag** (`unit`, `integration`) : la CI les lance en deux étapes.
 - Un fichier [factories.py](../backend/weeb_api/tests/factories.py) évite de répéter la création d'utilisateurs et d'articles.
 - Les tests backend tournent en CI sur **PostgreSQL**, comme en production.
-- **E2E** : Playwright démarre lui-même l'API et le front, sur une base **recréée à chaque run** (résultats reproductibles). La connexion est faite une seule fois puis réutilisée, à cause de la limite de 5 connexions par minute.
+- **E2E** : Playwright démarre lui-même l'API et le front, sur une base **recréée à chaque run** (résultats reproductibles). La connexion est faite une seule fois puis réutilisée, à cause de la limite de 5 connexions par minute. Comme le cookie change à chaque renouvellement, chaque test enregistre la session pour le suivant ([session.js](../e2e/tests/session.js)).
 
 **Ce que les tests m'ont appris**
 
 - Un ancien test **passait pour une mauvaise raison** : il utilisait un compte inactif, donc la règle « admin seulement » n'était jamais vérifiée.
 - Le raccourci `force_authenticate` de DRF **ignore** si le compte est validé : les tests de compte suspendu utilisent donc un vrai token JWT.
 - **Un vrai bug trouvé** : la connexion était sensible à la casse de l'email. Corrigé, avec un test qui échouait avant.
+- **Un autre en relisant SimpleJWT** : renouveler la session d'un compte supprimé provoquait une erreur 500 au lieu d'un 401. Corrigé et testé.
 
 ---
 
@@ -244,6 +249,10 @@ tests lents mais réalistes.
 | Temps de réponse | Sentry (10 % des requêtes) | Voir une lenteur avant la panne |
 | Version en ligne | `/api/health/` → `version` | Savoir quel commit tourne |
 | CPU, mémoire | Dashboard Render | Vérifier que 512 Mo suffisent |
+
+**Journaux** : une configuration `LOGGING` envoie les avertissements et les
+erreurs vers la sortie standard, donc dans les logs Render. Sans elle, Django
+n'écrivait les erreurs 500 qu'en mode debug.
 
 **Collecte** : Sentry n'est actif qu'en production (variable `SENTRY_DSN`),
 chaque erreur est rattachée au commit déployé, **sans données personnelles**
@@ -304,9 +313,9 @@ offres gratuites se vérifie dans leurs tableaux de bord, pas seulement en théo
 
 | Angle | Indicateur | Valeur | Pourquoi |
 |---|---|---|---|
-| Avant livraison | Tests back / front / E2E | 162 / 38 / 10 parcours, tous verts | Filet contre les régressions |
-| | Couverture back | 93 % (hors tests et migrations) | Code jamais exécuté = code jamais vérifié |
-| | Couverture front | ~79 % (services, composants, session) | Les pages sont surtout couvertes par l'E2E |
+| Avant livraison | Tests back / front / E2E | 173 / 49 / 12 parcours, tous verts | Filet contre les régressions |
+| | Couverture back | 95 % (hors tests et migrations) | Code jamais exécuté = code jamais vérifié |
+| | Couverture front | ~78 % (services, composants, session) | Les pages sont surtout couvertes par l'E2E |
 | | Lint front | 0 erreur | Code homogène |
 | Livraison | Réussite du pipeline | 15 derniers runs verts | Stabilité du code livré |
 | | Durée jusqu'à la mise en ligne | 5 à 10 min | Vitesse pour livrer un correctif |
@@ -328,6 +337,7 @@ avant la suivante.
 | Semaine 2 (juillet - août) | API Django, séparation front/back, branchement du front |
 | Semaine 3 (26 - 27 sept.) | Config de prod → Docker → CI → déploiement → CD → tests front → Sentry |
 | 12 octobre | Audit des 3 semaines, alertes, sécurité back, nettoyage front, tests en 3 niveaux, documentation |
+| 23 octobre | Retour de l'école : site 100 % français, versions fixées, inscription neutre, session en cookie HttpOnly, durcissement |
 
 **Git** : `main` (production) ← `develop` ← `feat/*`, `fix/*`, `docs/*`, commits
 *Conventional Commits*. Écarts assumés : premiers commits sans convention, PR
@@ -342,9 +352,9 @@ issues pas toujours créées. D'où l'axe d'amélioration « protéger `main` »
 |---|---|
 | Protéger `main` (PR + CI obligatoires) | Rendre le workflow impossible à contourner |
 | Seuil de couverture minimal en CI | Une baisse de couverture ne bloque rien aujourd'hui |
-| Limitation des requêtes via Redis et vraie IP | Le compteur actuel est par worker, et l'IP lue peut être falsifiée |
+| Régler `NUM_PROXIES` d'après les logs de production | Lire la vraie IP du visiteur derrière Vercel et Render, qu'il ne peut pas falsifier |
+| N'accepter que le trafic venant de Vercel (secret partagé) | Aujourd'hui, l'adresse Render reste joignable en direct |
 | Environnement de préproduction + validation humaine | Tester sur une copie de la prod avant de livrer |
-| Dependabot | Être prévenu des failles dans les dépendances |
 | Mesure de l'empreinte de la CI | Passer d'une réflexion qualitative à des chiffres |
 
 ---
@@ -369,6 +379,7 @@ issues pas toujours créées. D'où l'axe d'amélioration « protéger `main` »
 | Health check OK mais données sur SQLite (variable `DATABASE_URL` absente) | Un « ok » ne prouve pas tout : vérifier dans la vraie base |
 | Erreurs du front jamais reçues par Sentry | Les bloqueurs de pub : relais `/monitoring` |
 | Render et Vercel déployaient sans attendre les tests | Désactiver leur déploiement automatique |
+| Revue de l'école : cookie `SameSite=Lax` demandé, mais `vercel.app` et `onrender.com` sont deux sites différents | Faire passer l'API par le domaine du front : le cookie devient interne au site |
 
 **Choix et leur coût**
 
@@ -379,7 +390,8 @@ issues pas toujours créées. D'où l'axe d'amélioration « protéger `main` »
 | Déploiement piloté par GitHub Actions | Les tests décident vraiment | Secrets à gérer dans GitHub |
 | Offres gratuites | Aucun coût | Veille, builds lents, SMTP bloqué |
 | Sécurisé par défaut (`DEBUG=False`) | Un oubli ne crée pas de faille | Un `.env` nécessaire en local |
+| API relayée par Vercel, session en cookie HttpOnly | Token hors de portée d'un XSS, plus de CORS | Un intermédiaire de plus entre le visiteur et l'API |
 
-**Limites** : pas de préproduction ; limitation des requêtes approximative ;
+**Limites** : pas de préproduction ; IP du visiteur à régler (`NUM_PROXIES`) ;
 une ancienne clé de dev reste dans l'historique Git (jamais utilisée en prod) ;
 seul développeur, donc la CI est le seul relecteur.

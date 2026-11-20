@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import AuthContext from '../../context/AuthContext';
-import { articlesApi, authApi, tokenStorage } from '../../services/api';
+import { articlesApi, authApi, session } from '../../services/api';
 import MonEspace from './MonEspace';
 
 const ADA = {
@@ -53,7 +53,7 @@ describe('<MonEspace>', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
-    tokenStorage.clear();
+    session.clear();
   });
 
   it('liste mes articles avec un badge sur les brouillons', async () => {
@@ -67,7 +67,6 @@ describe('<MonEspace>', () => {
     vi.spyOn(authApi, 'changePassword').mockResolvedValue({
       detail: 'Mot de passe modifié.',
       access: 'nouvel-access',
-      refresh: 'nouveau-refresh',
     });
     renderPage();
 
@@ -77,7 +76,7 @@ describe('<MonEspace>', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Changer le mot de passe' }));
 
     expect(await screen.findByText('Mot de passe modifié.')).toBeInTheDocument();
-    expect(tokenStorage.getRefresh()).toBe('nouveau-refresh');
+    expect(session.getAccess()).toBe('nouvel-access');
   });
 
   it('supprime le compte après confirmation du mot de passe', async () => {

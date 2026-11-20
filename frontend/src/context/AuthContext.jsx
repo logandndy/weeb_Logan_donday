@@ -7,7 +7,7 @@
  */
 
 import { createContext, useCallback, useEffect, useMemo, useState } from 'react';
-import { authApi, tokenStorage } from '../services/api';
+import { authApi, session } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -18,9 +18,17 @@ export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    /** Restaure la session si un token est encore présent dans le navigateur. */
+    // Le serveur peut mettre fin à la session à tout moment (expiration, mot
+    // de passe changé sur un autre appareil) : la navbar doit alors repasser
+    // en mode visiteur, sans attendre un rechargement de la page.
+    session.onEnd(() => setUser(null));
+
+    /**
+     * Restaure la session au chargement de la page. Le token d'accès, gardé
+     * en mémoire, a disparu : api.js en redemande un grâce au cookie.
+     */
     async function restoreSession() {
-      if (!tokenStorage.getAccess()) {
+      if (!session.mayExist()) {
         setIsLoading(false);
         return;
       }
@@ -28,7 +36,8 @@ export function AuthProvider({ children }) {
       try {
         setUser(await authApi.me());
       } catch {
-        tokenStorage.clear();
+        // Session terminée : api.js l'a déjà effacée. Serveur injoignable :
+        // on la garde, le prochain chargement réessaiera.
       } finally {
         setIsLoading(false);
       }
@@ -39,24 +48,21 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => {
     const data = await authApi.login({ email, password });
-    tokenStorage.save({ access: data.access, refresh: data.refresh });
+    session.start(data.access);
     setUser(data.user);
     return data.user;
   }, []);
 
   /** Ferme la session dans ce navigateur seulement (compte supprimé par exemple). */
   const clearSession = useCallback(() => {
-    tokenStorage.clear();
+    session.clear();
     setUser(null);
   }, []);
 
   const logout = useCallback(() => {
-    // Le serveur met le token de rafraîchissement sur liste noire. On n'attend
-    // pas sa réponse : même hors ligne, la session locale est fermée.
-    const refresh = tokenStorage.getRefresh();
-    if (refresh) {
-      authApi.logout(refresh).catch(() => {});
-    }
+    // Le serveur met le token du cookie sur liste noire et efface le cookie.
+    // On n'attend pas sa réponse : même hors ligne, la session locale est fermée.
+    authApi.logout().catch(() => {});
     clearSession();
   }, [clearSession]);
 

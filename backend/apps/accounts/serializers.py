@@ -57,20 +57,29 @@ class SignupSerializer(serializers.ModelSerializer):
 
     Le compte est créé avec `is_active=False` : il devra être validé par un
     administrateur avant que l'utilisateur puisse se connecter.
+
+    Une adresse déjà utilisée n'est pas une erreur de validation : le message
+    « un compte existe déjà » dirait à n'importe qui quelles adresses ont un
+    compte. C'est la vue qui traite ce cas (voir SignupView).
     """
 
+    # Déclaré à la main : le champ généré par DRF à partir du modèle refuserait
+    # une adresse déjà prise, avec un message qui révèle le compte.
+    email = serializers.EmailField(max_length=254)
     password = serializers.CharField(write_only=True, validators=[validate_password])
     password_confirm = serializers.CharField(write_only=True)
 
     class Meta:
         model = User
-        fields = ["id", "first_name", "last_name", "email", "password", "password_confirm"]
+        fields = ["first_name", "last_name", "email", "password", "password_confirm"]
 
     def validate_email(self, value):
-        """Vérifie que l'email n'est pas déjà utilisé, sans tenir compte de la casse."""
-        if User.objects.filter(email__iexact=value).exists():
-            raise serializers.ValidationError("Un compte existe déjà avec cette adresse email.")
+        """Enregistre l'email en minuscules : Ada@Weeb.fr et ada@weeb.fr sont le même compte."""
         return value.lower()
+
+    def get_existing_user(self):
+        """Retourne le compte qui utilise déjà cette adresse, ou `None`."""
+        return User.objects.filter(email__iexact=self.validated_data["email"]).first()
 
     def validate(self, attrs):
         """Vérifie que les deux mots de passe saisis sont identiques."""

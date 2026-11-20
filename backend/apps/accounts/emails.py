@@ -4,37 +4,24 @@ Tous les emails du compte sont ici, pour les retrouver et les tester au même
 endroit :
 
 - mot de passe oublié : le lien de réinitialisation ;
+- inscription avec une adresse déjà utilisée : le titulaire est prévenu ;
 - nouvelle inscription : les administrateurs sont prévenus qu'un compte attend ;
 - compte validé : l'utilisateur apprend qu'il peut se connecter.
 
 Sans les deux derniers, l'inscription était un cul-de-sac : personne ne savait
 qu'un compte attendait, et l'utilisateur ne savait pas quand réessayer.
-"""
 
-import logging
+L'envoi lui-même (en arrière-plan) est dans weeb_api/mail.py.
+"""
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.mail import send_mail
+
+from weeb_api.mail import send_email as _send
 
 from .serializers import build_password_reset_payload
 
-logger = logging.getLogger(__name__)
 User = get_user_model()
-
-
-def _send(subject, message, recipients):
-    """Envoie un email sans jamais faire échouer la requête en cours.
-
-    Une panne du service d'email ne doit pas empêcher une inscription ou une
-    validation : l'erreur est journalisée (et remontée par Sentry en production).
-    """
-    if not recipients:
-        return
-    try:
-        send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, recipients)
-    except Exception:
-        logger.exception("Échec de l'envoi de l'email « %s »", subject)
 
 
 def send_password_reset_email(user):
@@ -50,6 +37,24 @@ def send_password_reset_email(user):
         "Vous avez demandé la réinitialisation de votre mot de passe. "
         f"Cliquez sur le lien suivant pour en choisir un nouveau :\n\n{reset_url}\n\n"
         "Si vous n'êtes pas à l'origine de cette demande, ignorez cet email.",
+        [user.email],
+    )
+
+
+def send_account_exists_email(user):
+    """Prévient le titulaire qu'une inscription a été tentée avec son adresse.
+
+    L'API répond à cette inscription comme à une autre, pour ne pas révéler
+    que l'adresse a un compte. Seul le vrai titulaire l'apprend, par email.
+    """
+    _send(
+        "Tentative d'inscription sur Weeb avec votre adresse",
+        f"Bonjour {user.get_short_name()},\n\n"
+        "Quelqu'un vient de créer un compte Weeb avec votre adresse, mais vous en "
+        "avez déjà un. Aucun nouveau compte n'a été créé.\n\n"
+        "Si c'était vous, connectez-vous ou choisissez un nouveau mot de passe :\n"
+        f"{settings.FRONTEND_URL}/mot-de-passe-oublie\n\n"
+        "Sinon, vous pouvez ignorer cet email.",
         [user.email],
     )
 

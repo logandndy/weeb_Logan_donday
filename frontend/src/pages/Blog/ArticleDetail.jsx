@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { articlesApi } from '../../services/api';
 import useAuth from '../../hooks/useAuth';
 import useFetch from '../../hooks/useFetch';
+import usePageTitle from '../../hooks/usePageTitle';
 import { formatDate } from '../../utils/format';
 import '../../styles/Blog.css';
 
@@ -12,6 +13,7 @@ const ArticleDetail = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { data: article, isLoading, error: loadError } = useFetch(() => articlesApi.retrieve(slug), [slug]);
+  usePageTitle(article?.title ?? 'Article');
   const [deleteError, setDeleteError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 

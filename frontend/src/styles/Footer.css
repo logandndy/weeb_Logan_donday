@@ -57,13 +57,6 @@
   color: #6b7280;
 }
 
-.social-links a {
-  margin-left: 15px;
-  color: #1f2937;
-  text-decoration: none;
-  font-weight: bold;
-}
-
 /* NEWSLETTER */
 .newsletter-col {
   flex: 1;

@@ -16,7 +16,7 @@ test('inscription puis connexion refusée avant validation', async ({ page }) =>
 
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.locator('.form-message--success')).toContainText(
-    'Il doit être validé par un administrateur',
+    'Votre compte doit être validé par un administrateur',
   );
 
   await page.locator('#login-email').fill(email);

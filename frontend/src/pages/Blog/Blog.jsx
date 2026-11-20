@@ -6,9 +6,11 @@ import useFetch from '../../hooks/useFetch';
 import Pagination from '../../components/Pagination';
 import ArticleCard from './ArticleCard';
 import '../../styles/Blog.css';
+import usePageTitle from '../../hooks/usePageTitle';
 
 /** Page Blog : liste paginée des articles publiés. */
 const Blog = () => {
+  usePageTitle('Blog');
   const { isAuthenticated } = useAuth();
   const [page, setPage] = useState(1);
   const { data, isLoading, error } = useFetch(() => articlesApi.list(page), [page]);

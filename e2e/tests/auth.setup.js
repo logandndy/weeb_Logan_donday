@@ -3,8 +3,8 @@
  *
  * La connexion est limitée à 5 essais par minute : se connecter dans chaque
  * test ferait vite tomber sur un 429. On se connecte donc ici via l'interface,
- * puis on enregistre l'état du navigateur (tokens dans le localStorage). Les
- * parcours connectés repartent de cet état.
+ * puis on enregistre l'état du navigateur (cookie de session HttpOnly compris).
+ * Les parcours connectés repartent de cet état (voir session.js).
  */
 import { expect, test as setup } from '@playwright/test';
 import { AUTEUR, AUTH_FILE, MOT_DE_PASSE } from './donnees.js';

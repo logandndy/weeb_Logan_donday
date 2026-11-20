@@ -3,9 +3,11 @@ import useAuth from '../../hooks/useAuth';
 import useForm from '../../hooks/useForm';
 import FormField from '../../components/FormField';
 import FormMessage from '../../components/FormMessage';
+import usePageTitle from '../../hooks/usePageTitle';
 
 /** Page de connexion. */
 const Login = () => {
+  usePageTitle('Connexion');
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -57,9 +59,8 @@ const Login = () => {
             Mot de passe oublié ?
           </Link>
           <p className="create-account">
-            Vous n&apos;avez pas de compte ? Vous
-            <br />
-            pouvez en <Link to="/signup">créer un compte</Link>
+            Vous n&apos;avez pas de compte ? <br />
+            <Link to="/signup">Créer un compte</Link>
           </p>
         </div>
       </div>

@@ -54,15 +54,14 @@ export default defineConfig({
         // Obligatoire : sans DEBUG, Django redirige tout le HTTP vers HTTPS.
         DEBUG: 'True',
         DATABASE_URL: 'sqlite:///e2e.sqlite3',
-        CORS_ALLOWED_ORIGINS: FRONT_URL,
         FRONTEND_URL: FRONT_URL,
         // Jamais de vrai email ni d'erreur envoyée à Sentry pendant les tests,
         // même si le .env local définit ces clés.
         BREVO_API_KEY: '',
         SENTRY_DSN: '',
       },
-      // Toujours un serveur neuf : redémarrer runserver remet aussi à zéro
-      // les compteurs de limitation de débit (stockés en mémoire).
+      // Toujours un serveur neuf, sur une base neuve : les compteurs de
+      // limitation de débit (gardés en base) repartent ainsi de zéro.
       reuseExistingServer: false,
       timeout: 120_000,
     },
@@ -70,7 +69,8 @@ export default defineConfig({
       command: `npm run dev -- --host 127.0.0.1 --port ${FRONT_PORT} --strictPort`,
       cwd: '../frontend',
       url: FRONT_URL,
-      env: { VITE_API_URL: `http://127.0.0.1:${API_PORT}/api` },
+      // Le serveur Vite relaie /api vers l'API de test (voir vite.config.js).
+      env: { API_PROXY_TARGET: `http://127.0.0.1:${API_PORT}` },
       reuseExistingServer: false,
       timeout: 120_000,
     },

@@ -16,6 +16,10 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Droits minimum : le pipeline lit le code, il n'écrit rien dans le dépôt.
+permissions:
+  contents: read
+
 jobs:
   backend:
     name: Backend - tests
@@ -46,7 +50,7 @@ jobs:
 
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.13"
+          python-version-file: .python-version
           cache: pip
           cache-dependency-path: backend/requirements.txt
 
@@ -90,7 +94,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: "24"
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
@@ -140,7 +144,7 @@ jobs:
       # à chaque run) et le frontend Vite : il faut donc Python et Node.
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.13"
+          python-version-file: .python-version
           cache: pip
           cache-dependency-path: backend/requirements.txt
 
@@ -149,7 +153,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: "24"
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: |
             frontend/package-lock.json
@@ -195,12 +199,7 @@ jobs:
       - name: Backend - déclenchement du déploiement Render
         run: curl -fsS -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}" > /dev/null
 
-      - name: Frontend - déploiement Vercel
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: npx --yes vercel@latest deploy --prod --token="${{ secrets.VERCEL_TOKEN }}"
-
+      # L'API d'abord : le front n'est mis en ligne que si la nouvelle API répond.
       - name: Smoke test - la nouvelle version de l'API est en ligne
         run: |
           # Le build Render prend quelques minutes : on attend jusqu'à 15 min
@@ -216,5 +215,15 @@ jobs:
           echo "La nouvelle version n'est pas en ligne après 15 min (version actuelle : $version)"
           exit 1
 
-      - name: Smoke test - le frontend répond
-        run: curl -fsS -o /dev/null https://weeb-logan-donday.vercel.app/
+      # Version épinglée : une nouvelle version de la CLI ne peut pas casser
+      # le déploiement sans qu'on l'ait choisie (Dependabot ne la suit pas).
+      - name: Frontend - déploiement Vercel
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: npx --yes vercel@65.2.0 deploy --prod --token="${{ secrets.VERCEL_TOKEN }}"
+
+      - name: Smoke test - le frontend répond et relaie l'API
+        run: |
+          curl -fsS -o /dev/null https://weeb-logan-donday.vercel.app/
+          curl -fsS https://weeb-logan-donday.vercel.app/api/ping/
