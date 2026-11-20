@@ -29,9 +29,10 @@ USER appuser
 
 EXPOSE 8000
 
-# Docker vérifie lui-même que l'API répond, via la route de santé.
+# Docker vérifie lui-même que l'API répond, via la route sans base de données
+# (appelée toutes les 30 s, elle ne doit pas garder la base éveillée).
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD python -c "import os, urllib.request; urllib.request.urlopen(f'http://localhost:{os.environ[\"PORT\"]}/api/health/')"
+    CMD python -c "import os, urllib.request; urllib.request.urlopen(f'http://localhost:{os.environ[\"PORT\"]}/api/ping/')"
 
 # Au démarrage : on applique les migrations puis on lance gunicorn.
 # 2 workers : suffisant pour le trafic du blog et adapté aux 512 Mo de l'offre gratuite.

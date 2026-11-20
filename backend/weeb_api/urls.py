@@ -4,7 +4,8 @@
     /api/auth/...    inscription, connexion, profil, mot de passe oublié
     /api/articles/   CRUD des articles du blog
     /api/contact/    enregistrement des messages du formulaire de contact
-    /api/health/     état de l'API, utilisé par le monitoring
+    /api/ping/       l'API tourne (sans base), sondes fréquentes
+    /api/health/     l'API et sa base répondent, smoke test et sonde horaire
     /api/debug-sentry/  erreur volontaire pour tester Sentry (admins)
 """
 
@@ -13,7 +14,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
-from .views import health, sentry_debug
+from .views import health, ping, sentry_debug
 
 admin.site.site_header = "Administration Weeb"
 admin.site.site_title = "Weeb"
@@ -21,6 +22,7 @@ admin.site.index_title = "Gestion du blog"
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("api/ping/", ping, name="ping"),
     path("api/health/", health, name="health"),
     path("api/debug-sentry/", sentry_debug, name="sentry-debug"),
     path("api/auth/", include("apps.accounts.urls")),

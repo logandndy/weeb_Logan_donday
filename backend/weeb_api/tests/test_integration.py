@@ -21,6 +21,12 @@ class HealthCheckTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok", "database": "ok", "version": "dev"})
 
+    def test_ping_repond_ok_sans_authentification(self):
+        response = self.client.get(reverse("ping"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "ok")
+
 
 @tag("integration")
 class SentryDebugTests(TestCase):

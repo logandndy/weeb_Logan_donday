@@ -87,7 +87,7 @@ flowchart LR
 
 | Job | Ce qu'il garantit |
 |---|---|
-| `backend` | Config valide, sécurité de prod sans avertissement, aucune migration oubliée, 129 tests verts sur un vrai PostgreSQL |
+| `backend` | Config valide, sécurité de prod sans avertissement, aucune migration oubliée, 132 tests verts sur un vrai PostgreSQL |
 | `frontend` | Code propre (lint), 26 tests verts, application qui compile |
 | `docker` | L'image se construit **et démarre** |
 | `e2e` | Les parcours utilisateur marchent, front + API réunis |
@@ -124,7 +124,7 @@ Choix du [Dockerfile](../backend/Dockerfile) :
 | `python:3.13-slim` | ~293 Mo au lieu de >1 Go : moins de stockage, de transfert et de failles |
 | Dépendances installées **avant** le code | Cache Docker : pas de réinstallation si `requirements.txt` ne change pas |
 | Utilisateur non-root | Une faille ne donne pas les droits root du conteneur |
-| `HEALTHCHECK` sur `/api/health/` | Docker sait si l'API répond |
+| `HEALTHCHECK` sur `/api/ping/` | Docker sait si l'API répond, sans réveiller la base toutes les 30 s |
 | `migrate` puis `gunicorn --workers 2` | Pas d'étape pré-déploiement en gratuit ; 2 workers tiennent dans 512 Mo |
 
 `.dockerignore` exclut `venv/`, la base locale et `.env` (secrets).
@@ -147,12 +147,13 @@ Choix du [Dockerfile](../backend/Dockerfile) :
 
 | Contrainte de l'offre gratuite | Réponse |
 |---|---|
-| Veille après 15 min sans trafic (~30-50 s au réveil) | La sonde UptimeRobot garde l'API éveillée |
+| Veille après 15 min sans trafic (~30-50 s au réveil) | Sonde UptimeRobot sur `/api/ping/` toutes les 10 min |
 | 512 Mo de mémoire | Image slim, 2 workers |
 | Build lent (5-10 min) | Le smoke test attend jusqu'à 15 min |
 | Disque éphémère | Images d'articles stockées en URL, pas en fichiers |
 | Ports SMTP bloqués | Emails via l'API HTTP de Brevo (port 443), 300/jour |
 | Neon : 0,5 Go | Largement suffisant pour un blog |
+| Neon : 100 h de calcul par mois | Seules les vraies requêtes et une sonde horaire réveillent la base (voir §8) |
 
 ---
 
@@ -199,8 +200,8 @@ tests lents mais réalistes.
 
 | Niveau | Outil | Question posée | Tests |
 |---|---|---|---|
-| Unitaire | Django (`test_unit.py`) | Cette brique seule fonctionne-t-elle ? (modèle, validation, permission, email) | 65 |
-| Intégration | Django + client HTTP (`test_integration.py`) | Vue, base, JWT et limites fonctionnent-ils ensemble ? | 64 |
+| Unitaire | Django (`test_unit.py`) | Cette brique seule fonctionne-t-elle ? (modèle, validation, permission, email) | 67 |
+| Intégration | Django + client HTTP (`test_integration.py`) | Vue, base, JWT et limites fonctionnent-ils ensemble ? | 65 |
 | Front | Vitest + Testing Library | `api.js`, session et écrans réagissent-ils bien ? | 26 |
 | Bout en bout | Playwright (Chromium) | Un utilisateur arrive-t-il au bout de son parcours ? | 9 parcours |
 
@@ -236,7 +237,8 @@ tests lents mais réalistes.
 
 | Surveillé | Outil | Pourquoi |
 |---|---|---|
-| API **et** base disponibles | UptimeRobot sur `/api/health/` (5 min) | La route teste la base : une API sans base est en panne (503) |
+| API disponible | UptimeRobot sur `/api/ping/` (10 min) | Réponse sans toucher la base ; garde aussi Render éveillé |
+| Base disponible | UptimeRobot sur `/api/health/` (1 h) | La route teste la base : une API sans base est en panne (503) |
 | Site disponible | UptimeRobot sur Vercel (5 min) | Front et API peuvent tomber séparément |
 | Erreurs back et front | Sentry | Une erreur 500 ou JavaScript est invisible sinon |
 | Temps de réponse | Sentry (10 % des requêtes) | Voir une lenteur avant la panne |
@@ -270,10 +272,31 @@ sessions sans crash.
 | Sentry sur 10 % des requêtes | Tendances visibles sans tout envoyer |
 | Veille Render et Neon | Rien ne tourne sans visiteur |
 
-**Compromis assumé** : la sonde toutes les 5 min empêche la mise en veille.
-Un peu plus de consommation, contre une alerte en cas de panne et pas de
-démarrage lent pour les visiteurs. Pas de mesure chiffrée possible : les offres
-gratuites n'exposent pas la consommation.
+**Incident du 19 octobre : quota Neon dépassé.** Mon premier réglage
+appelait `/api/health/` (qui interroge la base) partout : health check Render
+toutes les quelques secondes, Docker toutes les 30 s, UptimeRobot toutes les
+5 min. Neon ne se met en veille qu'après 5 min sans activité : la base n'a donc
+jamais dormi. Elle a tourné ~440 h en 23 jours, soit ~110 h de calcul pour un
+quota gratuit de 100 h, et Neon a coupé les connexions. Le site est resté
+affiché (Vercel) mais l'API ne répondait plus.
+
+**Correction** : deux routes aux rôles séparés.
+
+| Route | Touche la base ? | Appelée par | Fréquence |
+|---|---|---|---|
+| `/api/ping/` | Non | Health check Render, Docker, UptimeRobot | secondes / 30 s / 10 min |
+| `/api/health/` | Oui | Smoke test du pipeline, UptimeRobot | à chaque déploiement / 1 h |
+
+Les connexions à la base sont aussi fermées après chaque requête
+(`conn_max_age=0`) pour qu'une connexion inactive ne retienne pas Neon. Estimation :
+~5 min de réveil par heure, soit ~60 h d'allumage et ~15 h de calcul par mois,
+plus les visites réelles. Render reste éveillé (744 h par mois pour 750 h
+gratuites).
+
+**Leçon** : la réflexion énergie était juste sur le principe (« ne faire tourner
+que l'utile »), mais je n'avais pas mesuré ce que coûtait chaque sonde. Une route
+de surveillance doit être aussi légère que possible, et la consommation des
+offres gratuites se vérifie dans leurs tableaux de bord, pas seulement en théorie.
 
 ---
 
@@ -343,6 +366,7 @@ issues pas toujours créées. D'où l'axe d'amélioration « protéger `main` »
 |---|---|
 | Scripts cassés en CI (fins de ligne Windows) | `.gitattributes` force LF |
 | Front en ligne → 404 sur l'API | `VITE_API_URL` est lue au build, pas à l'exécution |
+| Base coupée : quota Neon dépassé par les sondes | Une sonde fréquente ne doit pas toucher la base (`/api/ping/`) |
 | Health check OK mais données sur SQLite (variable `DATABASE_URL` absente) | Un « ok » ne prouve pas tout : vérifier dans la vraie base |
 | Erreurs du front jamais reçues par Sentry | Les bloqueurs de pub : relais `/monitoring` |
 | Render et Vercel déployaient sans attendre les tests | Désactiver leur déploiement automatique |
