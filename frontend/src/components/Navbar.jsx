@@ -50,7 +50,9 @@ const Navbar = () => {
                 <Link to="/blog/nouveau" className="login-link">
                   Écrire
                 </Link>
-                <span className="nav-user">{user.first_name}</span>
+                <NavLink to="/mon-espace" className="nav-user" title="Mon espace">
+                  {user.first_name}
+                </NavLink>
                 <button type="button" className="join-btn" onClick={handleLogout}>
                   Déconnexion
                 </button>
@@ -89,6 +91,9 @@ const Navbar = () => {
 
             {isAuthenticated ? (
               <>
+                <NavLink to="/mon-espace" onClick={closeMenu}>
+                  Mon espace
+                </NavLink>
                 <Link to="/blog/nouveau" onClick={closeMenu}>
                   Écrire un article
                 </Link>

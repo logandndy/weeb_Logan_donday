@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { contactApi } from '../../services/api';
 import Contact from './Contact';
@@ -6,7 +7,11 @@ import Contact from './Contact';
 describe('<Contact>', () => {
   it('remercie le visiteur et vide le formulaire après l’envoi', async () => {
     const send = vi.spyOn(contactApi, 'send').mockResolvedValue({ id: 1 });
-    render(<Contact />);
+    render(
+      <MemoryRouter>
+        <Contact />
+      </MemoryRouter>,
+    );
 
     fireEvent.change(screen.getByLabelText('Nom *'), { target: { value: 'Donday' } });
     fireEvent.change(screen.getByLabelText('Prénom *'), { target: { value: 'Logan' } });

@@ -161,3 +161,18 @@
     text-align: center;
   }
 }
+
+/* Lien vers la politique de confidentialité, à côté du copyright. */
+.footer-legal-link {
+  color: inherit;
+  transition: color 0.3s ease;
+}
+
+.footer-legal-link:hover {
+  color: #a855f7;
+}
+
+/* Le lien sous le formulaire newsletter garde le violet de la marque. */
+.newsletter-col .form-legal a {
+  color: #a855f7;
+}

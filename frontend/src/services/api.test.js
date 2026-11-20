@@ -56,11 +56,26 @@ describe('request()', () => {
     tokenStorage.save({ access: 'expire', refresh: 'invalide' });
     vi.spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(jsonResponse(401, { detail: 'Token expiré' }))
-      .mockResolvedValueOnce(jsonResponse(401, { detail: 'Refresh invalide' }));
+      .mockResolvedValueOnce(jsonResponse(401, { detail: 'Refresh invalide' }))
+      .mockResolvedValueOnce(jsonResponse(401, { detail: 'Authentification requise' }));
 
     await expect(request('/auth/me/')).rejects.toMatchObject({ status: 401 });
     expect(tokenStorage.getAccess()).toBeNull();
     expect(tokenStorage.getRefresh()).toBeNull();
+  });
+
+  it('rejoue une route publique sans token quand la session est terminée', async () => {
+    tokenStorage.save({ access: 'expire', refresh: 'invalide' });
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(jsonResponse(401, { detail: 'Token expiré' }))
+      .mockResolvedValueOnce(jsonResponse(401, { detail: 'Refresh invalide' }))
+      .mockResolvedValueOnce(jsonResponse(200, { results: [] }));
+
+    const data = await request('/articles/');
+
+    expect(data).toEqual({ results: [] });
+    expect(fetchMock.mock.calls[2][1].headers.Authorization).toBeUndefined();
   });
 
   it('transforme les erreurs de validation DRF en erreurs par champ', async () => {

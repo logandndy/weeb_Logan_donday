@@ -44,14 +44,34 @@ export function AuthProvider({ children }) {
     return data.user;
   }, []);
 
-  const logout = useCallback(() => {
+  /** Ferme la session dans ce navigateur seulement (compte supprimé par exemple). */
+  const clearSession = useCallback(() => {
     tokenStorage.clear();
     setUser(null);
   }, []);
 
+  const logout = useCallback(() => {
+    // Le serveur met le token de rafraîchissement sur liste noire. On n'attend
+    // pas sa réponse : même hors ligne, la session locale est fermée.
+    const refresh = tokenStorage.getRefresh();
+    if (refresh) {
+      authApi.logout(refresh).catch(() => {});
+    }
+    clearSession();
+  }, [clearSession]);
+
   const value = useMemo(
-    () => ({ user, isLoading, isAuthenticated: user !== null, login, logout }),
-    [user, isLoading, login, logout],
+    () => ({
+      user,
+      isLoading,
+      isAuthenticated: user !== null,
+      login,
+      logout,
+      clearSession,
+      // Après une modification du profil (page Mon espace).
+      updateUser: setUser,
+    }),
+    [user, isLoading, login, logout, clearSession],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

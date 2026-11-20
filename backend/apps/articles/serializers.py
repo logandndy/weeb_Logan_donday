@@ -22,7 +22,8 @@ class ArticleListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Article
-        fields = ["id", "title", "slug", "excerpt", "cover_image", "author", "created_at"]
+        # is_published : la page Mon espace affiche un badge sur les brouillons.
+        fields = ["id", "title", "slug", "excerpt", "cover_image", "author", "is_published", "created_at"]
 
 
 class ArticleDetailSerializer(ArticleListSerializer):

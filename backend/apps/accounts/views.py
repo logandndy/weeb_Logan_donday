@@ -1,21 +1,22 @@
 """Vues d'authentification : inscription, connexion, profil, mot de passe oublié."""
 
-from django.conf import settings
-from django.core.mail import send_mail
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from .emails import notify_admins_new_account, send_password_reset_email
 from .serializers import (
     LoginSerializer,
+    PasswordChangeSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
     SignupSerializer,
     UserSerializer,
-    build_password_reset_payload,
 )
+from .sessions import revoke_all_sessions
 
 
 class SignupView(generics.CreateAPIView):
@@ -25,6 +26,10 @@ class SignupView(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "signup"
+
+    def perform_create(self, serializer):
+        """Crée le compte, puis prévient les administrateurs qu'il attend leur validation."""
+        notify_admins_new_account(serializer.save())
 
     def create(self, request, *args, **kwargs):
         """Crée le compte, puis ajoute un message que le frontend affiche tel quel.
@@ -49,35 +54,59 @@ class LoginView(TokenObtainPairView):
     throttle_scope = "login"
 
 
-class CurrentUserView(generics.RetrieveAPIView):
-    """GET /api/auth/me/ — retourne le profil de l'utilisateur connecté."""
+class CurrentUserView(generics.RetrieveUpdateDestroyAPIView):
+    """Profil de l'utilisateur connecté (page Mon espace).
+
+    - GET    /api/auth/me/ : lire son profil ;
+    - PATCH  /api/auth/me/ : modifier son prénom et son nom ;
+    - DELETE /api/auth/me/ : supprimer son compte (droit à l'effacement du RGPD).
+    """
 
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["get", "patch", "delete", "head", "options"]
 
     def get_object(self):
         """Renvoie l'utilisateur du token : pas d'id dans l'URL, donc pas d'accès aux autres profils."""
         return self.request.user
 
+    def destroy(self, request, *args, **kwargs):
+        """Supprime le compte et ses articles, après confirmation du mot de passe.
 
-def send_password_reset_email(user):
-    """Envoie à l'utilisateur le lien de réinitialisation vers la page du frontend."""
-    payload = build_password_reset_payload(user)
-    reset_url = (
-        f"{settings.FRONTEND_URL}/reset-password"
-        f"?uid={payload['uid']}&token={payload['token']}"
-    )
-    send_mail(
-        subject="Réinitialisation de votre mot de passe Weeb",
-        message=(
-            f"Bonjour {user.get_short_name()},\n\n"
-            "Vous avez demandé la réinitialisation de votre mot de passe. "
-            f"Cliquez sur le lien suivant pour en choisir un nouveau :\n\n{reset_url}\n\n"
-            "Si vous n'êtes pas à l'origine de cette demande, ignorez cet email."
-        ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-    )
+        Le mot de passe est redemandé : un token volé ne doit pas suffire à
+        effacer un compte.
+        """
+        user = request.user
+        if not user.check_password(request.data.get("password", "")):
+            return Response({"password": ["Mot de passe incorrect."]}, status=status.HTTP_400_BAD_REQUEST)
+        revoke_all_sessions(user)
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class PasswordChangeView(APIView):
+    """POST /api/auth/password-change/ — change le mot de passe d'un utilisateur connecté."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "password_change"
+
+    def post(self, request):
+        """Change le mot de passe, puis ouvre une session neuve pour cet appareil.
+
+        Toutes les sessions viennent d'être coupées : sans nouveaux tokens,
+        l'utilisateur serait déconnecté de l'appareil qu'il est en train d'utiliser.
+        """
+        serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        refresh = RefreshToken.for_user(serializer.save())
+        return Response(
+            {
+                "detail": "Mot de passe modifié. Vos autres appareils ont été déconnectés.",
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+            }
+        )
 
 
 class PasswordResetRequestView(APIView):

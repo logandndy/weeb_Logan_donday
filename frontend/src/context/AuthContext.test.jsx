@@ -77,15 +77,30 @@ describe('<AuthProvider>', () => {
     expect(tokenStorage.getRefresh()).toBe('r');
   });
 
-  it('logout() vide les tokens et l’utilisateur', async () => {
+  it('logout() révoque le token côté serveur puis vide la session', async () => {
     tokenStorage.save({ access: 'token-a', refresh: 'token-r' });
     vi.spyOn(authApi, 'me').mockResolvedValue(ADA);
+    const logoutApi = vi.spyOn(authApi, 'logout').mockResolvedValue({});
+    renderProvider();
+    await screen.findByText('connecté : Ada');
+
+    fireEvent.click(screen.getByRole('button', { name: 'logout' }));
+
+    expect(logoutApi).toHaveBeenCalledWith('token-r');
+    expect(screen.getByText('déconnecté')).toBeInTheDocument();
+    expect(tokenStorage.getAccess()).toBeNull();
+  });
+
+  it('logout() ferme la session même si le serveur ne répond pas', async () => {
+    tokenStorage.save({ access: 'token-a', refresh: 'token-r' });
+    vi.spyOn(authApi, 'me').mockResolvedValue(ADA);
+    vi.spyOn(authApi, 'logout').mockRejectedValue(new Error('Réseau indisponible'));
     renderProvider();
     await screen.findByText('connecté : Ada');
 
     fireEvent.click(screen.getByRole('button', { name: 'logout' }));
 
     expect(screen.getByText('déconnecté')).toBeInTheDocument();
-    expect(tokenStorage.getAccess()).toBeNull();
+    expect(tokenStorage.getRefresh()).toBeNull();
   });
 });

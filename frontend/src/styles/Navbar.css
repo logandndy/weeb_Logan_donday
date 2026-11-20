@@ -73,11 +73,21 @@
 }
 
 /* Prénom de l'utilisateur connecté, affiché avant le bouton de déconnexion. */
+/* Prénom de l'utilisateur connecté : lien vers la page Mon espace. */
 .nav-user {
   color: #a855f7;
   font-size: 0.9rem;
   font-weight: 600;
   margin-right: 16px;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.nav-user:hover,
+.nav-user.active {
+  color: #c084fc;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 /* Bouton Join Now. Sert aussi de bouton de déconnexion : les règles ci-dessous

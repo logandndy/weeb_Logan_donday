@@ -1,58 +1,20 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { articlesApi } from '../../services/api';
 import useAuth from '../../hooks/useAuth';
+import useFetch from '../../hooks/useFetch';
+import Pagination from '../../components/Pagination';
+import ArticleCard from './ArticleCard';
 import '../../styles/Blog.css';
 
-/** Formate une date ISO en date lisible en français. */
-function formatDate(isoDate) {
-  return new Date(isoDate).toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-}
-
-/** Page Blog : liste paginée des articles récupérés depuis l'API. */
+/** Page Blog : liste paginée des articles publiés. */
 const Blog = () => {
   const { isAuthenticated } = useAuth();
-
-  const [articles, setArticles] = useState([]);
   const [page, setPage] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { data, isLoading, error } = useFetch(() => articlesApi.list(page), [page]);
 
-  useEffect(() => {
-    // `isStale` évite d'appliquer la réponse d'une page qu'on a déjà quittée.
-    let isStale = false;
-
-    async function loadArticles() {
-      setIsLoading(true);
-      setError('');
-
-      try {
-        const data = await articlesApi.list(page);
-        if (!isStale) {
-          setArticles(data.results);
-          setHasNextPage(data.next !== null);
-        }
-      } catch (apiError) {
-        if (!isStale) {
-          setError(apiError.message);
-        }
-      } finally {
-        if (!isStale) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadArticles();
-    return () => {
-      isStale = true;
-    };
-  }, [page]);
+  const articles = data?.results ?? [];
+  const hasNextPage = Boolean(data?.next);
 
   return (
     <div className="blog-page">
@@ -76,7 +38,7 @@ const Blog = () => {
 
       {error && (
         <p className="blog-status blog-status--error" role="alert">
-          {error}
+          {error.message}
         </p>
       )}
 
@@ -86,39 +48,11 @@ const Blog = () => {
 
       <div className="articles-grid">
         {articles.map((article) => (
-          <article key={article.id} className="article-card">
-            <Link to={`/blog/${article.slug}`} className="article-card-link">
-              <div className="article-card-cover">
-                {article.cover_image ? (
-                  <img src={article.cover_image} alt="" loading="lazy" />
-                ) : (
-                  <span className="article-card-placeholder">weeb</span>
-                )}
-              </div>
-
-              <div className="article-card-body">
-                <h2>{article.title}</h2>
-                {article.excerpt && <p className="article-card-excerpt">{article.excerpt}</p>}
-                <p className="article-card-meta">
-                  {article.author.full_name} · {formatDate(article.created_at)}
-                </p>
-              </div>
-            </Link>
-          </article>
+          <ArticleCard key={article.id} article={article} />
         ))}
       </div>
 
-      {(page > 1 || hasNextPage) && (
-        <nav className="blog-pagination" aria-label="Pagination des articles">
-          <button type="button" onClick={() => setPage(page - 1)} disabled={page === 1}>
-            &larr; Précédent
-          </button>
-          <span>Page {page}</span>
-          <button type="button" onClick={() => setPage(page + 1)} disabled={!hasNextPage}>
-            Suivant &rarr;
-          </button>
-        </nav>
-      )}
+      <Pagination page={page} hasNextPage={hasNextPage} onChange={setPage} label="Pagination des articles" />
     </div>
   );
 };

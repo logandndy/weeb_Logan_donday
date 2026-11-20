@@ -387,3 +387,15 @@ button:focus-visible,
     font-size: 2.2rem;
   }
 }
+
+/* Mention RGPD sous les formulaires qui collectent des données. */
+.form-legal {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  margin: 15px 0 0;
+}
+
+.form-legal a {
+  color: #a855f7;
+}

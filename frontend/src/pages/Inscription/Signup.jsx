@@ -1,6 +1,7 @@
-import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authApi } from '../../services/api';
+import useForm from '../../hooks/useForm';
+import FormField from '../../components/FormField';
 import FormMessage from '../../components/FormMessage';
 
 const EMPTY_FORM = {
@@ -19,34 +20,18 @@ const EMPTY_FORM = {
  */
 const Signup = () => {
   const navigate = useNavigate();
+  const { values, fieldErrors, error, isSubmitting, handleChange, submit } = useForm(EMPTY_FORM);
 
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [error, setError] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  function handleChange(event) {
-    const { name, value } = event.target;
-
-    setForm((previous) => ({ ...previous, [name]: value }));
-    setFieldErrors((previous) => ({ ...previous, [name]: undefined }));
-  }
-
-  async function handleSubmit(event) {
+  function handleSubmit(event) {
     event.preventDefault();
-    setIsSubmitting(true);
-    setError('');
-    setFieldErrors({});
-
-    try {
+    submit(async (form) => {
       const data = await authApi.signup(form);
       navigate('/login', { state: { message: data.detail } });
-    } catch (apiError) {
-      setError(apiError.message);
-      setFieldErrors(apiError.fieldErrors ?? {});
-      setIsSubmitting(false);
-    }
+    });
   }
+
+  /** Raccourci : chaque champ est relié à sa valeur, son erreur et handleChange. */
+  const field = (name) => ({ name, value: values[name], error: fieldErrors[name], onChange: handleChange, required: true });
 
   return (
     <div className="signup-page">
@@ -56,79 +41,20 @@ const Signup = () => {
         <FormMessage type="error">{error}</FormMessage>
 
         <form className="signup-form" onSubmit={handleSubmit} noValidate>
-          <div className="input-group">
-            <input
-              type="text"
-              id="signup-first-name"
-              name="first_name"
-              value={form.first_name}
-              onChange={handleChange}
-              required
-              placeholder=" "
-            />
-            <label htmlFor="signup-first-name">Prénom *</label>
-            <FormMessage type="field">{fieldErrors.first_name}</FormMessage>
-          </div>
-
-          <div className="input-group">
-            <input
-              type="text"
-              id="signup-last-name"
-              name="last_name"
-              value={form.last_name}
-              onChange={handleChange}
-              required
-              placeholder=" "
-            />
-            <label htmlFor="signup-last-name">Nom *</label>
-            <FormMessage type="field">{fieldErrors.last_name}</FormMessage>
-          </div>
-
-          <div className="input-group">
-            <input
-              type="email"
-              id="signup-email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              required
-              placeholder=" "
-            />
-            <label htmlFor="signup-email">Email *</label>
-            <FormMessage type="field">{fieldErrors.email}</FormMessage>
-          </div>
-
-          <div className="input-group">
-            <input
-              type="password"
-              id="signup-password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              required
-              placeholder=" "
-            />
-            <label htmlFor="signup-password">Mot de passe *</label>
-            <FormMessage type="field">{fieldErrors.password}</FormMessage>
-          </div>
-
-          <div className="input-group">
-            <input
-              type="password"
-              id="signup-confirm-password"
-              name="password_confirm"
-              value={form.password_confirm}
-              onChange={handleChange}
-              required
-              placeholder=" "
-            />
-            <label htmlFor="signup-confirm-password">Confirmer le mot de passe *</label>
-            <FormMessage type="field">{fieldErrors.password_confirm}</FormMessage>
-          </div>
+          <FormField id="signup-first-name" label="Prénom *" {...field('first_name')} />
+          <FormField id="signup-last-name" label="Nom *" {...field('last_name')} />
+          <FormField id="signup-email" type="email" label="Email *" {...field('email')} />
+          <FormField id="signup-password" type="password" label="Mot de passe *" {...field('password')} />
+          <FormField id="signup-confirm-password" type="password" label="Confirmer le mot de passe *"
+            {...field('password_confirm')} />
 
           <button type="submit" className="btn-primary signup-btn" disabled={isSubmitting}>
             {isSubmitting ? 'Création...' : 'Créer mon compte'}
           </button>
+          <p className="form-legal">
+            Vos informations servent uniquement à gérer votre compte. Voir notre{' '}
+            <Link to="/confidentialite">politique de confidentialité</Link>.
+          </p>
         </form>
 
         <div className="signup-links">
