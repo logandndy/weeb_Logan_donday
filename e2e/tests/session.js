@@ -5,6 +5,10 @@
  * Le cookie de session change à chaque renouvellement et l'ancien est grillé
  * (rotation). Repartir toujours du cookie de auth.setup.js échouerait donc dès
  * le deuxième test : chacun reprend le cookie laissé par le précédent.
+ *
+ * Avant d'enregistrer, on attend que le réseau soit calme. Sinon, un test qui
+ * se termine pendant un renouvellement enregistre l'ancien cookie, déjà
+ * remplacé côté serveur, et le test suivant démarre avec une session usée.
  */
 import { test as base } from '@playwright/test';
 import { AUTH_FILE } from './donnees.js';
@@ -13,6 +17,9 @@ export const test = base.extend({
   storageState: AUTH_FILE,
   context: async ({ context }, use) => {
     await use(context);
+    for (const page of context.pages()) {
+      await page.waitForLoadState('networkidle');
+    }
     await context.storageState({ path: AUTH_FILE });
   },
 });
