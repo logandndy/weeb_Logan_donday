@@ -1,20 +1,34 @@
-"""Vues d'authentification : inscription, connexion, profil, mot de passe oublié."""
+"""Vues d'authentification : inscription, connexion, session, profil, mot de passe oublié."""
 
-from django.conf import settings
-from django.core.mail import send_mail
-from rest_framework import generics, permissions
+from django.contrib.auth.hashers import make_password
+from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from .emails import (
+    notify_admins_new_account,
+    send_account_exists_email,
+    send_password_reset_email,
+)
 from .serializers import (
     LoginSerializer,
+    PasswordChangeSerializer,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
     SignupSerializer,
     UserSerializer,
-    build_password_reset_payload,
+)
+from .sessions import (
+    REFRESH_COOKIE,
+    delete_refresh_cookie,
+    renew_after_lost_rotation,
+    revoke_all_sessions,
+    rotate_refresh_token,
+    set_refresh_cookie,
 )
 
 
@@ -27,57 +41,171 @@ class SignupView(generics.CreateAPIView):
     throttle_scope = "signup"
 
     def create(self, request, *args, **kwargs):
-        """Crée le compte, puis ajoute un message que le frontend affiche tel quel.
+        """Crée le compte, ou prévient le titulaire si l'adresse a déjà un compte.
 
-        Le compte étant inactif, on prévient l'utilisateur qu'il ne pourra se
-        connecter qu'après validation par un administrateur.
+        La réponse est la même dans les deux cas : un message, sans identifiant.
+        Sinon, n'importe qui pourrait tester des adresses pour savoir qui est
+        inscrit (énumération des comptes). Le vrai titulaire, lui, est prévenu
+        par email. Le compte créé est inactif : le message le dit.
         """
-        response = super().create(request, *args, **kwargs)
-        response.data["detail"] = (
-            "Votre compte a bien été créé. Il doit être validé par un "
-            "administrateur avant que vous puissiez vous connecter."
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        existing_user = serializer.get_existing_user()
+        if existing_user is None:
+            notify_admins_new_account(serializer.save())
+        else:
+            # Hachage pour rien, mais pas inutile : une vraie création hache le
+            # mot de passe (opération volontairement lente). Sans lui, une
+            # réponse plus rapide trahirait une adresse déjà inscrite.
+            make_password(serializer.validated_data["password"])
+            send_account_exists_email(existing_user)
+
+        return Response(
+            {
+                "detail": "Inscription enregistrée. Votre compte doit être validé par un "
+                "administrateur avant que vous puissiez vous connecter. Si cette adresse "
+                "avait déjà un compte, un email vous l'indique."
+            },
+            status=status.HTTP_201_CREATED,
         )
-        return response
 
 
 class LoginView(TokenObtainPairView):
-    """POST /api/auth/login/ — retourne une paire de tokens JWT et le profil."""
+    """POST /api/auth/login/ — ouvre une session.
+
+    La réponse contient le token d'accès et le profil. Le token de
+    rafraîchissement part dans un cookie HttpOnly (voir sessions.py).
+    """
 
     serializer_class = LoginSerializer
     permission_classes = [permissions.AllowAny]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "login"
 
+    def post(self, request, *args, **kwargs):
+        """Vérifie les identifiants (parent), puis déplace le refresh dans le cookie."""
+        response = super().post(request, *args, **kwargs)
+        set_refresh_cookie(response, response.data.pop("refresh"))
+        return response
 
-class CurrentUserView(generics.RetrieveAPIView):
-    """GET /api/auth/me/ — retourne le profil de l'utilisateur connecté."""
+
+class RefreshView(APIView):
+    """POST /api/auth/refresh/ — nouveau token d'accès, à partir du cookie de session.
+
+    Le cookie est renouvelé à chaque appel (rotation) et l'ancien token est mis
+    sur liste noire : un token volé puis rejoué ne sert qu'une fois. Seule
+    exception, une rotation dont la réponse s'est perdue (voir
+    renew_after_lost_rotation).
+    """
+
+    permission_classes = [permissions.AllowAny]
+    # Aucun token d'accès n'est attendu ici : il est justement expiré.
+    authentication_classes = []
+
+    def post(self, request):
+        """Renvoie un token d'accès neuf, ou 401 et efface le cookie si la session est finie."""
+        raw_token = request.COOKIES.get(REFRESH_COOKIE, "")
+        refresh = rotate_refresh_token(raw_token) or renew_after_lost_rotation(raw_token)
+        if refresh is None:
+            # Token absent, expiré ou révoqué, compte suspendu ou supprimé.
+            response = Response(
+                {"detail": "Votre session a expiré. Reconnectez-vous."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+            delete_refresh_cookie(response)
+            return response
+
+        response = Response({"access": str(refresh.access_token)})
+        set_refresh_cookie(response, refresh)
+        return response
+
+
+class LogoutView(APIView):
+    """POST /api/auth/logout/ — ferme la session de ce navigateur.
+
+    Le token du cookie est mis sur liste noire côté serveur, puis le cookie
+    est effacé. Même sans cookie valide, la réponse est un succès : le but
+    (ne plus être connecté) est atteint.
+    """
+
+    permission_classes = [permissions.AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        """Révoque le token du cookie s'il est encore valable, puis efface le cookie."""
+        token = request.COOKIES.get(REFRESH_COOKIE)
+        if token:
+            try:
+                RefreshToken(token).blacklist()
+            except TokenError:
+                pass  # déjà expiré ou révoqué
+        response = Response(status=status.HTTP_204_NO_CONTENT)
+        delete_refresh_cookie(response)
+        return response
+
+
+class CurrentUserView(generics.RetrieveUpdateDestroyAPIView):
+    """Profil de l'utilisateur connecté (page Mon espace).
+
+    - GET    /api/auth/me/ : lire son profil ;
+    - PATCH  /api/auth/me/ : modifier son prénom et son nom ;
+    - DELETE /api/auth/me/ : supprimer son compte (droit à l'effacement du RGPD).
+    """
 
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["get", "patch", "delete", "head", "options"]
+    throttle_scope = "account_delete"
+
+    def get_throttles(self):
+        """Limite les suppressions : chacune vérifie un mot de passe, donc devinable sans limite."""
+        return [ScopedRateThrottle()] if self.request.method == "DELETE" else []
 
     def get_object(self):
         """Renvoie l'utilisateur du token : pas d'id dans l'URL, donc pas d'accès aux autres profils."""
         return self.request.user
 
+    def destroy(self, request, *args, **kwargs):
+        """Supprime le compte et ses articles, après confirmation du mot de passe.
 
-def send_password_reset_email(user):
-    """Envoie à l'utilisateur le lien de réinitialisation vers la page du frontend."""
-    payload = build_password_reset_payload(user)
-    reset_url = (
-        f"{settings.FRONTEND_URL}/reset-password"
-        f"?uid={payload['uid']}&token={payload['token']}"
-    )
-    send_mail(
-        subject="Réinitialisation de votre mot de passe Weeb",
-        message=(
-            f"Bonjour {user.get_short_name()},\n\n"
-            "Vous avez demandé la réinitialisation de votre mot de passe. "
-            f"Cliquez sur le lien suivant pour en choisir un nouveau :\n\n{reset_url}\n\n"
-            "Si vous n'êtes pas à l'origine de cette demande, ignorez cet email."
-        ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-    )
+        Le mot de passe est redemandé : un token volé ne doit pas suffire à
+        effacer un compte.
+        """
+        user = request.user
+        if not user.check_password(request.data.get("password", "")):
+            return Response({"password": ["Mot de passe incorrect."]}, status=status.HTTP_400_BAD_REQUEST)
+        revoke_all_sessions(user)
+        user.delete()
+        response = Response(status=status.HTTP_204_NO_CONTENT)
+        delete_refresh_cookie(response)
+        return response
+
+
+class PasswordChangeView(APIView):
+    """POST /api/auth/password-change/ — change le mot de passe d'un utilisateur connecté."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "password_change"
+
+    def post(self, request):
+        """Change le mot de passe, puis ouvre une session neuve pour cet appareil.
+
+        Toutes les sessions viennent d'être coupées : sans nouveaux tokens,
+        l'utilisateur serait déconnecté de l'appareil qu'il est en train d'utiliser.
+        """
+        serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        refresh = RefreshToken.for_user(serializer.save())
+        response = Response(
+            {
+                "detail": "Mot de passe modifié. Vos autres appareils ont été déconnectés.",
+                "access": str(refresh.access_token),
+            }
+        )
+        set_refresh_cookie(response, refresh)
+        return response
 
 
 class PasswordResetRequestView(APIView):

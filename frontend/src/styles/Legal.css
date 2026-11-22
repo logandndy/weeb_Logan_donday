@@ -1,0 +1,58 @@
+/* Page Politique de confidentialité. La mise en page de lecture vient de
+   Blog.css (article-page, article-content) : seuls les ajouts sont ici. */
+
+.legal-page {
+  padding-top: 120px;
+}
+
+.legal-page .article-content h2 {
+  font-size: 1.5rem;
+  color: var(--blanc);
+  margin: 50px 0 15px;
+}
+
+.legal-page .article-content a {
+  color: var(--violet);
+}
+
+.legal-list {
+  color: var(--texte-clair);
+  line-height: 1.8;
+  padding-left: 20px;
+}
+
+/* Le tableau défile horizontalement sur mobile au lieu de déborder. */
+.legal-table-wrapper {
+  overflow-x: auto;
+  margin: 20px 0;
+}
+
+.legal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  min-width: 560px;
+}
+
+.legal-table th,
+.legal-table td {
+  text-align: left;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--violet-halo);
+  vertical-align: top;
+}
+
+.legal-table thead th {
+  color: var(--violet);
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.legal-table tbody th {
+  color: var(--blanc);
+}
+
+.legal-table td {
+  color: var(--texte-clair);
+}

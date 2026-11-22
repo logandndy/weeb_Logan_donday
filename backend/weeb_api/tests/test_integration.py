@@ -21,6 +21,12 @@ class HealthCheckTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok", "database": "ok", "version": "dev"})
 
+    def test_ping_repond_ok_sans_authentification(self):
+        response = self.client.get(reverse("ping"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "ok")
+
 
 @tag("integration")
 class SentryDebugTests(TestCase):
@@ -48,5 +54,7 @@ class SentryDebugTests(TestCase):
     def test_leve_l_erreur_pour_un_admin(self):
         self.client.force_login(make_admin())
 
-        with self.assertRaisesMessage(RuntimeError, "Test Sentry backend"):
-            self.client.get(reverse("sentry-debug"))
+        # L'erreur est aussi écrite dans les journaux (LOGGING) : visible sur Render.
+        with self.assertLogs("django.request", level="ERROR"):
+            with self.assertRaisesMessage(RuntimeError, "Test Sentry backend"):
+                self.client.get(reverse("sentry-debug"))

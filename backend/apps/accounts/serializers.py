@@ -6,11 +6,14 @@ réinitialisation de mot de passe) et le formatage des données sortantes.
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+from .sessions import revoke_all_sessions
 
 User = get_user_model()
 
@@ -26,7 +29,11 @@ def check_passwords_match(password, confirmation, field):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """Représentation publique d'un utilisateur, renvoyée par `/api/auth/me/`."""
+    """Profil de l'utilisateur connecté (`/api/auth/me/`).
+
+    Seuls le prénom et le nom sont modifiables depuis la page Mon espace.
+    L'email (identifiant de connexion) et les droits ne changent jamais ici.
+    """
 
     full_name = serializers.CharField(source="get_full_name", read_only=True)
 
@@ -42,7 +49,7 @@ class UserSerializer(serializers.ModelSerializer):
             "is_staff",
             "date_joined",
         ]
-        read_only_fields = fields
+        read_only_fields = ["id", "email", "is_active", "is_staff", "date_joined"]
 
 
 class SignupSerializer(serializers.ModelSerializer):
@@ -50,20 +57,29 @@ class SignupSerializer(serializers.ModelSerializer):
 
     Le compte est créé avec `is_active=False` : il devra être validé par un
     administrateur avant que l'utilisateur puisse se connecter.
+
+    Une adresse déjà utilisée n'est pas une erreur de validation : le message
+    « un compte existe déjà » dirait à n'importe qui quelles adresses ont un
+    compte. C'est la vue qui traite ce cas (voir SignupView).
     """
 
+    # Déclaré à la main : le champ généré par DRF à partir du modèle refuserait
+    # une adresse déjà prise, avec un message qui révèle le compte.
+    email = serializers.EmailField(max_length=254)
     password = serializers.CharField(write_only=True, validators=[validate_password])
     password_confirm = serializers.CharField(write_only=True)
 
     class Meta:
         model = User
-        fields = ["id", "first_name", "last_name", "email", "password", "password_confirm"]
+        fields = ["first_name", "last_name", "email", "password", "password_confirm"]
 
     def validate_email(self, value):
-        """Vérifie que l'email n'est pas déjà utilisé, sans tenir compte de la casse."""
-        if User.objects.filter(email__iexact=value).exists():
-            raise serializers.ValidationError("Un compte existe déjà avec cette adresse email.")
+        """Enregistre l'email en minuscules : Ada@Weeb.fr et ada@weeb.fr sont le même compte."""
         return value.lower()
+
+    def get_existing_user(self):
+        """Retourne le compte qui utilise déjà cette adresse, ou `None`."""
+        return User.objects.filter(email__iexact=self.validated_data["email"]).first()
 
     def validate(self, attrs):
         """Vérifie que les deux mots de passe saisis sont identiques."""
@@ -97,12 +113,16 @@ class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
     def get_user(self):
-        """Retourne l'utilisateur correspondant à l'email, ou `None` s'il n'existe pas.
+        """Retourne le compte actif correspondant à l'email, ou `None`.
 
         On ne lève volontairement pas d'erreur quand l'email est inconnu : cela
-        permettrait à un attaquant de savoir quels comptes existent.
+        permettrait à un attaquant de savoir quels comptes existent. Un compte
+        pas encore validé (ou suspendu) ne reçoit pas de lien non plus : il ne
+        pourrait de toute façon pas se connecter.
         """
-        return User.objects.filter(email__iexact=self.validated_data["email"]).first()
+        return User.objects.filter(
+            email__iexact=self.validated_data["email"], is_active=True
+        ).first()
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
@@ -142,6 +162,8 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         user = self.validated_data["user"]
         user.set_password(self.validated_data["new_password"])
         user.save(update_fields=["password"])
+        # Si quelqu'un d'autre avait accès au compte, il est déconnecté.
+        revoke_all_sessions(user)
         return user
 
 
@@ -151,3 +173,40 @@ def build_password_reset_payload(user):
         "uid": urlsafe_base64_encode(force_bytes(user.pk)),
         "token": default_token_generator.make_token(user),
     }
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    """Changement de mot de passe d'un utilisateur connecté (page Mon espace).
+
+    L'ancien mot de passe est redemandé : un token volé ne suffit pas pour
+    prendre le contrôle du compte.
+    """
+
+    old_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
+    new_password_confirm = serializers.CharField(write_only=True)
+
+    def validate_old_password(self, value):
+        """Vérifie que l'utilisateur connaît bien son mot de passe actuel."""
+        if not self.context["request"].user.check_password(value):
+            raise serializers.ValidationError("Mot de passe actuel incorrect.")
+        return value
+
+    def validate(self, attrs):
+        """Vérifie la confirmation et la solidité du nouveau mot de passe."""
+        check_passwords_match(attrs["new_password"], attrs["new_password_confirm"], "new_password_confirm")
+        # L'utilisateur est passé aux validateurs : un mot de passe trop proche
+        # de son nom ou de son email est refusé.
+        try:
+            validate_password(attrs["new_password"], self.context["request"].user)
+        except DjangoValidationError as error:
+            raise serializers.ValidationError({"new_password": list(error.messages)})
+        return attrs
+
+    def save(self):
+        """Enregistre le nouveau mot de passe et déconnecte tous les appareils."""
+        user = self.context["request"].user
+        user.set_password(self.validated_data["new_password"])
+        user.save(update_fields=["password"])
+        revoke_all_sessions(user)
+        return user

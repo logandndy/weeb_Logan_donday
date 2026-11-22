@@ -7,7 +7,9 @@ C'est depuis cette interface que l'administrateur valide les comptes en attente
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
+from .emails import send_account_validated_email
 from .models import User
+from .sessions import revoke_all_sessions
 
 
 @admin.register(User)
@@ -50,12 +52,25 @@ class UserAdmin(BaseUserAdmin):
 
     @admin.action(description="Valider les comptes sélectionnés")
     def valider_comptes(self, request, queryset):
-        """Active en masse les comptes sélectionnés."""
-        updated = queryset.update(is_active=True)
-        self.message_user(request, f"{updated} compte(s) validé(s).")
+        """Active les comptes sélectionnés et prévient chaque personne par email."""
+        # Seuls les comptes encore en attente reçoivent l'email : revalider un
+        # compte déjà actif ne doit pas renvoyer de message.
+        en_attente = list(queryset.filter(is_active=False))
+        queryset.update(is_active=True)
+        for user in en_attente:
+            send_account_validated_email(user)
+        self.message_user(request, f"{len(en_attente)} compte(s) validé(s) et prévenu(s) par email.")
+
+    def save_model(self, request, obj, form, change):
+        """Prévient aussi l'utilisateur quand son compte est validé depuis sa fiche."""
+        super().save_model(request, obj, form, change)
+        if change and "is_active" in form.changed_data and obj.is_active:
+            send_account_validated_email(obj)
 
     @admin.action(description="Suspendre les comptes sélectionnés")
     def suspendre_comptes(self, request, queryset):
-        """Désactive en masse les comptes sélectionnés."""
+        """Désactive les comptes sélectionnés et coupe leurs sessions en cours."""
+        for user in queryset:
+            revoke_all_sessions(user)
         updated = queryset.update(is_active=False)
         self.message_user(request, f"{updated} compte(s) suspendu(s).")

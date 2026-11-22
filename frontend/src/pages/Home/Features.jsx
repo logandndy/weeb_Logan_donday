@@ -26,7 +26,7 @@ const Features = () => {
         </div>
         <div className="features-image">
           <div className="mockup-placeholder">
-            <img src={dashboardImg} alt="Dashboard des ressources" />
+            <img src={dashboardImg} alt="Tableau de bord des ressources" />
           </div>
         </div>
       </div>

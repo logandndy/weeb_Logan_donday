@@ -1,62 +1,42 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { newsletterApi } from '../services/api';
+import useForm from '../hooks/useForm';
+import FormMessage from './FormMessage';
 import '../styles/Footer.css';
 
-// Intitulés de la maquette, reliés aux pages qui existent déjà.
+// Uniquement des liens vers des pages qui existent vraiment. « Écrire un
+// article » passe par la connexion si besoin, puis revient au formulaire.
 const FOOTER_COLUMNS = [
   {
-    title: 'PRODUCT',
+    title: 'Explorer',
     links: [
-      { label: 'Pricing', to: '/contact' },
-      { label: 'Overview', to: '/' },
-      { label: 'Browse', to: '/blog' },
-      { label: 'Accessibility', to: '/contact' },
-      { label: 'Five', to: '/' },
-    ],
-  },
-  {
-    title: 'SOLUTIONS',
-    links: [
-      { label: 'Brainstorming', to: '/blog' },
-      { label: 'Ideation', to: '/blog' },
-      { label: 'Wireframing', to: '/blog' },
-      { label: 'Research', to: '/blog' },
-    ],
-  },
-  {
-    title: 'RESOURCES',
-    links: [
-      { label: 'Help Center', to: '/contact' },
+      { label: 'Accueil', to: '/' },
       { label: 'Blog', to: '/blog' },
-      { label: 'Tutorials', to: '/blog' },
+      { label: 'Contact', to: '/contact' },
     ],
   },
   {
-    title: 'COMPANY',
+    title: 'Votre compte',
     links: [
-      { label: 'About', to: '/' },
-      { label: 'Press', to: '/blog' },
-      { label: 'Events', to: '/blog' },
-      { label: 'Careers', to: '/contact' },
+      { label: 'Créer un compte', to: '/signup' },
+      { label: 'Se connecter', to: '/login' },
+      { label: 'Écrire un article', to: '/blog/nouveau' },
     ],
   },
-];
-
-const SOCIAL_LINKS = [
-  { label: 'YT', name: 'YouTube', href: 'https://www.youtube.com' },
-  { label: 'FB', name: 'Facebook', href: 'https://www.facebook.com' },
-  { label: 'TW', name: 'X (Twitter)', href: 'https://x.com' },
-  { label: 'IG', name: 'Instagram', href: 'https://www.instagram.com' },
-  { label: 'IN', name: 'LinkedIn', href: 'https://www.linkedin.com' },
 ];
 
 const Footer = () => {
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [confirmation, setConfirmation] = useState('');
+  const { values, error, fieldErrors, isSubmitting, handleChange, submit } = useForm({ email: '' });
 
-  /** La newsletter n'a pas encore de backend : on confirme sans recharger la page. */
+  /** Inscrit l'adresse à la newsletter : un email de bienvenue est envoyé. */
   function handleNewsletterSubmit(event) {
     event.preventDefault();
-    setIsSubscribed(true);
+    submit(async ({ email }) => {
+      const data = await newsletterApi.subscribe(email);
+      setConfirmation(data.detail);
+    });
   }
 
   return (
@@ -77,44 +57,47 @@ const Footer = () => {
             </div>
           ))}
           <div className="footer-column newsletter-col">
-            <h3>NEWSLETTER</h3>
+            <h3>Newsletter</h3>
             <p className="newsletter-desc">
               Le web en constante évolution, direct dans votre boîte mail.
             </p>
-            {isSubscribed ? (
+            {confirmation ? (
               <p className="newsletter-success" role="status">
-                Merci ! La newsletter ouvre bientôt, en attendant retrouvez nos articles sur le
-                blog.
+                {confirmation}
               </p>
             ) : (
-              <form className="newsletter-form" onSubmit={handleNewsletterSubmit}>
-                <input
-                  type="email"
-                  placeholder="Votre email"
-                  aria-label="Votre email"
-                  required
-                />
-                <button type="submit">Envoyer</button>
-              </form>
+              <>
+                <form className="newsletter-form" onSubmit={handleNewsletterSubmit} noValidate>
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Votre email"
+                    aria-label="Votre email"
+                    required
+                    value={values.email}
+                    onChange={handleChange}
+                  />
+                  <button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? '...' : 'Envoyer'}
+                  </button>
+                </form>
+                <FormMessage type="field">{fieldErrors.email ?? error}</FormMessage>
+                <p className="form-legal">
+                  Désinscription possible à tout moment.{' '}
+                  <Link to="/confidentialite">Confidentialité</Link>
+                </p>
+              </>
             )}
           </div>
         </div>
       </div>
       <div className="footer-bottom">
-        <p>&copy; 2026 Weeb, Inc. All rights reserved.</p>
-        <div className="social-links">
-          {SOCIAL_LINKS.map((social) => (
-            <a
-              key={social.label}
-              href={social.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={social.name}
-            >
-              {social.label}
-            </a>
-          ))}
-        </div>
+        <p>
+          &copy; 2026 Weeb ·{' '}
+          <Link to="/confidentialite" className="footer-legal-link">
+            Confidentialité
+          </Link>
+        </p>
       </div>
     </footer>
   );

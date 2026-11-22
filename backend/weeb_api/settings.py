@@ -56,7 +56,7 @@ if not DEBUG:
     # Toute requête HTTP est redirigée vers HTTPS. La route de santé en est
     # exemptée : les sondes internes (Docker, CI) l'appellent en HTTP.
     SECURE_SSL_REDIRECT = True
-    SECURE_REDIRECT_EXEMPT = [r"^api/health/$"]
+    SECURE_REDIRECT_EXEMPT = [r"^api/health/$", r"^api/ping/$"]
     # HSTS : une fois venu en HTTPS, le navigateur refuse le HTTP pendant un an.
     SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
@@ -80,13 +80,16 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
-    "corsheaders",
+    # Liste noire des tokens : une déconnexion ou un changement de mot de passe
+    # rend vraiment inutilisables les tokens de rafraîchissement déjà délivrés.
+    "rest_framework_simplejwt.token_blacklist",
 ]
 
 LOCAL_APPS = [
     "apps.accounts",
     "apps.articles",
     "apps.contact",
+    "apps.newsletter",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -95,7 +98,6 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 # --- Requêtes, routage et gabarits ------------------------------------------
 
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -132,10 +134,13 @@ WSGI_APPLICATION = "weeb_api.wsgi.application"
 
 # "or" et non default= : une variable présente mais vide (DATABASE_URL= dans
 # le .env) doit aussi retomber sur SQLite.
+# conn_max_age=0 : la connexion est fermée à la fin de chaque requête. Une
+# connexion gardée ouverte par un worker inactif pourrait empêcher Neon de
+# se mettre en veille, et donc consommer le quota gratuit pour rien.
 DATABASES = {
     "default": dj_database_url.parse(
         os.environ.get("DATABASE_URL") or f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
-        conn_max_age=600,
+        conn_max_age=0,
     )
 }
 
@@ -163,6 +168,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
+    "EXCEPTION_HANDLER": "weeb_api.exceptions.french_exception_handler",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 10,
     # Limitation du nombre de requêtes sur les routes publiques sensibles
@@ -172,24 +178,42 @@ REST_FRAMEWORK = {
         "login": "5/min",
         "signup": "10/hour",
         "password_reset": "5/hour",
+        "password_change": "5/hour",
+        "account_delete": "5/hour",
         "contact": "10/hour",
+        "newsletter": "10/hour",
     },
+    # Nombre de proxys devant Django (Vercel, puis Render). Il permet de lire la
+    # vraie adresse IP du visiteur dans X-Forwarded-For, sans croire une valeur
+    # qu'il aurait inventée. Réglé sur Render après lecture des logs de production.
+    "NUM_PROXIES": int(os.environ["NUM_PROXIES"]) if os.environ.get("NUM_PROXIES") else None,
+}
+
+# Les compteurs de limitation sont gardés en base. En mémoire, chaque worker
+# gunicorn aurait les siens (2 workers : 2 fois plus d'essais permis), remis à
+# zéro à chaque redémarrage. La table est créée par une migration (accounts 0002).
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+        "LOCATION": "weeb_cache",
+    }
 }
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
+    # Sans liste noire, l'ancien token restait valable après la rotation :
+    # la rotation ne protégeait de rien.
+    "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
 
-# --- CORS -------------------------------------------------------------------
-# Le frontend React (Vite) tourne sur un port différent de celui de l'API.
-
-CORS_ALLOWED_ORIGINS = env_list(
-    "CORS_ALLOWED_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
-)
+# Pas de CORS : le navigateur n'appelle jamais l'API sur un autre domaine.
+# En production, Vercel relaie /api vers Render (vercel.json). En local, Vite
+# fait de même (vite.config.js). C'est aussi ce qui permet le cookie de session
+# SameSite=Strict (voir apps/accounts/sessions.py).
 
 
 # --- Envoi d'emails ---------------------------------------------------------
@@ -233,6 +257,17 @@ MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# --- Journaux ---------------------------------------------------------------
+# Sans cette configuration, Django n'affiche les erreurs qu'en mode debug :
+# en production, une erreur 500 n'apparaissait pas dans les logs de Render.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "root": {"handlers": ["console"], "level": "WARNING"},
+}
 
 
 # --- Monitoring des erreurs (Sentry) ---------------------------------------

@@ -1,6 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import * as Sentry from '@sentry/react'
+// Police Inter servie par le site lui-même, et non par Google : aucune donnée
+// du visiteur (adresse IP) n'est envoyée à un tiers pour afficher une page.
+import '@fontsource-variable/inter'
+import './styles/theme.css'
 import './styles/index.css'
 import App from './App.jsx'
 import { initMonitoring } from './monitoring'

@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { articlesApi } from '../../services/api';
 import useAuth from '../../hooks/useAuth';
+import useFetch from '../../hooks/useFetch';
+import useForm from '../../hooks/useForm';
+import FormField from '../../components/FormField';
 import FormMessage from '../../components/FormMessage';
+import usePageTitle from '../../hooks/usePageTitle';
 import '../../styles/Blog.css';
 
 const EMPTY_ARTICLE = {
@@ -14,99 +17,33 @@ const EMPTY_ARTICLE = {
 };
 
 /**
- * Formulaire d'ajout et de modification d'un article.
+ * Ajout et modification d'un article.
  *
- * Le même composant sert aux deux usages : la présence d'un `slug` dans l'URL
- * bascule le formulaire en mode édition et pré-remplit les champs.
+ * La présence d'un `slug` dans l'URL bascule en mode édition : l'article est
+ * d'abord chargé, puis le formulaire s'affiche pré-rempli.
  */
 const ArticleForm = () => {
   const { slug } = useParams();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const isEditing = slug !== undefined;
-
-  const [form, setForm] = useState(EMPTY_ARTICLE);
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(isEditing);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isForbidden, setIsForbidden] = useState(false);
-
-  useEffect(() => {
-    if (!isEditing) {
-      return undefined;
-    }
-
-    let isStale = false;
-
-    async function loadArticle() {
-      try {
-        const data = await articlesApi.retrieve(slug);
-        if (isStale) {
-          return;
-        }
-        // Même règle que le backend (IsAuthorOrReadOnly) : l'auteur ou un admin.
-        // Le backend refuserait de toute façon la modification ; on évite
-        // seulement d'afficher un formulaire inutilisable.
-        if (data.author.id !== user.id && !user.is_staff) {
-          setIsForbidden(true);
-        } else {
-          setForm({
-            title: data.title,
-            excerpt: data.excerpt,
-            cover_image: data.cover_image,
-            content: data.content,
-            is_published: data.is_published,
-          });
-        }
-      } catch (apiError) {
-        if (!isStale) {
-          setError(apiError.message);
-        }
-      } finally {
-        if (!isStale) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadArticle();
-    return () => {
-      isStale = true;
-    };
-  }, [slug, isEditing, user]);
-
-  /** Met à jour un champ du formulaire et efface l'erreur qui lui est associée. */
-  function handleChange(event) {
-    const { name, value, type, checked } = event.target;
-
-    setForm((previous) => ({ ...previous, [name]: type === 'checkbox' ? checked : value }));
-    setFieldErrors((previous) => ({ ...previous, [name]: undefined }));
-  }
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-    setIsSubmitting(true);
-    setError('');
-    setFieldErrors({});
-
-    try {
-      const article = isEditing
-        ? await articlesApi.update(slug, form)
-        : await articlesApi.create(form);
-      navigate(`/blog/${article.slug}`);
-    } catch (apiError) {
-      setError(apiError.message);
-      setFieldErrors(apiError.fieldErrors ?? {});
-      setIsSubmitting(false);
-    }
-  }
+  usePageTitle(isEditing ? 'Modifier l’article' : 'Nouvel article');
+  const { data, isLoading, error } = useFetch(
+    () => (isEditing ? articlesApi.retrieve(slug) : Promise.resolve(null)),
+    [slug],
+  );
 
   if (isLoading) {
     return <p className="blog-status">Chargement de l&apos;article...</p>;
   }
 
-  if (isForbidden) {
+  if (error) {
+    return <p className="blog-status blog-status--error" role="alert">{error.message}</p>;
+  }
+
+  // Même règle que le backend (IsAuthorOrReadOnly) : l'auteur ou un admin.
+  // Le backend refuserait de toute façon la modification. On évite seulement
+  // d'afficher un formulaire inutilisable.
+  if (data && data.author.id !== user.id && !user.is_staff) {
     return (
       <div className="blog-status">
         <p>Seul l&apos;auteur de cet article peut le modifier.</p>
@@ -114,6 +51,35 @@ const ArticleForm = () => {
       </div>
     );
   }
+
+  const initialValues = data
+    ? {
+        title: data.title,
+        excerpt: data.excerpt,
+        cover_image: data.cover_image,
+        content: data.content,
+        is_published: data.is_published,
+      }
+    : EMPTY_ARTICLE;
+
+  return <ArticleFormFields slug={slug} initialValues={initialValues} />;
+};
+
+/** Le formulaire lui-même, une fois les valeurs de départ connues. */
+function ArticleFormFields({ slug, initialValues }) {
+  const navigate = useNavigate();
+  const isEditing = slug !== undefined;
+  const { values, fieldErrors, error, isSubmitting, handleChange, submit } = useForm(initialValues);
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    submit(async (form) => {
+      const article = isEditing ? await articlesApi.update(slug, form) : await articlesApi.create(form);
+      navigate(`/blog/${article.slug}`);
+    });
+  }
+
+  const field = (name) => ({ name, value: values[name], error: fieldErrors[name], onChange: handleChange });
 
   return (
     <div className="article-form-page">
@@ -123,76 +89,29 @@ const ArticleForm = () => {
         <FormMessage type="error">{error}</FormMessage>
 
         <form className="article-form" onSubmit={handleSubmit} noValidate>
-          <div className="input-group full-width">
-            <input
-              type="text"
-              id="article-title"
-              name="title"
-              value={form.title}
-              onChange={handleChange}
-              required
-              placeholder=" "
-            />
-            <label htmlFor="article-title">Titre *</label>
-            <FormMessage type="field">{fieldErrors.title}</FormMessage>
-          </div>
-
-          <div className="input-group full-width">
-            <input
-              type="text"
-              id="article-excerpt"
-              name="excerpt"
-              value={form.excerpt}
-              onChange={handleChange}
-              placeholder=" "
-            />
-            <label htmlFor="article-excerpt">Accroche</label>
-            <FormMessage type="field">{fieldErrors.excerpt}</FormMessage>
-          </div>
-
-          <div className="input-group full-width">
-            <input
-              type="url"
-              id="article-cover"
-              name="cover_image"
-              value={form.cover_image}
-              onChange={handleChange}
-              placeholder=" "
-            />
-            <label htmlFor="article-cover">Image de couverture (URL)</label>
-            <FormMessage type="field">{fieldErrors.cover_image}</FormMessage>
-          </div>
-
-          <div className="input-group full-width">
-            <textarea
-              id="article-content"
-              name="content"
-              rows="14"
-              value={form.content}
-              onChange={handleChange}
-              required
-              placeholder=" "
-            ></textarea>
-            <label htmlFor="article-content">Contenu *</label>
-            <FormMessage type="field">{fieldErrors.content}</FormMessage>
-          </div>
+          <FormField id="article-title" label="Titre *" required className="full-width" {...field('title')} />
+          <FormField id="article-excerpt" label="Accroche" className="full-width" {...field('excerpt')} />
+          <FormField id="article-cover" type="url" label="Image de couverture (URL)" className="full-width"
+            {...field('cover_image')} />
+          <FormField id="article-content" label="Contenu *" multiline rows="14" required className="full-width"
+            {...field('content')} />
 
           <label className="checkbox-group" htmlFor="article-published">
             <input
               type="checkbox"
               id="article-published"
               name="is_published"
-              checked={form.is_published}
+              checked={values.is_published}
               onChange={handleChange}
             />
             <span>Publier l&apos;article immédiatement</span>
           </label>
 
           <div className="article-form-actions">
-            <button type="submit" className="btn-primary" disabled={isSubmitting}>
+            <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
               {isSubmitting ? 'Enregistrement...' : 'Enregistrer'}
             </button>
-            <button type="button" className="btn-ghost" onClick={() => navigate('/blog')}>
+            <button type="button" className="btn btn-ghost" onClick={() => navigate('/blog')}>
               Annuler
             </button>
           </div>
@@ -200,6 +119,6 @@ const ArticleForm = () => {
       </div>
     </div>
   );
-};
+}
 
 export default ArticleForm;

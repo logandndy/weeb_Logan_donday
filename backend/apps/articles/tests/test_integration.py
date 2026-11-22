@@ -48,6 +48,12 @@ class ArticleLectureTests(ArticleTestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["title"], self.article.title)
 
+    def test_article_inexistant_message_en_francais(self):
+        response = self.client.get("/api/articles/n-existe-pas/")
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data["detail"], "Contenu introuvable.")
+
     def test_les_brouillons_sont_masques_aux_visiteurs(self):
         response = self.client.get("/api/articles/")
 
@@ -108,20 +114,29 @@ class ArticleVisibiliteTests(ArticleTestCase):
     def test_liste_visiteur_publies_seulement(self):
         self.assertEqual(self.slugs_de_la_liste(), {self.article.slug})
 
-    def test_liste_auteur_publies_et_ses_brouillons(self):
+    def test_le_blog_ne_montre_que_les_publies_meme_a_l_auteur_et_a_l_admin(self):
+        for user in (self.auteur, self.admin):
+            with self.subTest(profil=user.email):
+                auth_client(self.client, user)
+
+                self.assertEqual(self.slugs_de_la_liste(), {self.article.slug})
+
+    def test_mes_articles_contient_mes_brouillons(self):
         auth_client(self.client, self.auteur)
 
-        self.assertEqual(self.slugs_de_la_liste(), {self.article.slug, self.brouillon.slug})
+        slugs = {a["slug"] for a in self.client.get("/api/articles/?mine=true").data["results"]}
 
-    def test_liste_autre_utilisateur_sans_les_brouillons_des_autres(self):
+        self.assertEqual(slugs, {self.article.slug, self.brouillon.slug})
+
+    def test_mes_articles_ne_contient_pas_ceux_des_autres(self):
         auth_client(self.client, self.autre)
 
-        self.assertEqual(self.slugs_de_la_liste(), {self.article.slug})
+        self.assertEqual(self.client.get("/api/articles/?mine=true").data["count"], 0)
 
-    def test_liste_admin_voit_tout(self):
-        auth_client(self.client, self.admin)
+    def test_mes_articles_sans_compte_revient_au_blog_public(self):
+        slugs = {a["slug"] for a in self.client.get("/api/articles/?mine=true").data["results"]}
 
-        self.assertEqual(self.slugs_de_la_liste(), {self.article.slug, self.brouillon.slug})
+        self.assertEqual(slugs, {self.article.slug})
 
     def test_detail_d_un_brouillon_selon_le_profil(self):
         """404 et non 403 : on ne révèle même pas qu'un brouillon existe à cette adresse."""

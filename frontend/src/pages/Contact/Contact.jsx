@@ -1,42 +1,30 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { contactApi } from '../../services/api';
+import useForm from '../../hooks/useForm';
+import FormField from '../../components/FormField';
 import FormMessage from '../../components/FormMessage';
+import usePageTitle from '../../hooks/usePageTitle';
 
 const EMPTY_FORM = { last_name: '', first_name: '', email: '', message: '' };
 
 /** Page Contact : envoie le message saisi vers l'API. */
 const Contact = () => {
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [error, setError] = useState('');
+  usePageTitle('Contact');
   const [feedback, setFeedback] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { values, setValues, fieldErrors, error, isSubmitting, handleChange, submit } = useForm(EMPTY_FORM);
 
-  function handleChange(event) {
-    const { name, value } = event.target;
-
-    setForm((previous) => ({ ...previous, [name]: value }));
-    setFieldErrors((previous) => ({ ...previous, [name]: undefined }));
-  }
-
-  async function handleSubmit(event) {
+  function handleSubmit(event) {
     event.preventDefault();
-    setIsSubmitting(true);
-    setError('');
     setFeedback('');
-    setFieldErrors({});
-
-    try {
+    submit(async (form) => {
       await contactApi.send(form);
-      setForm(EMPTY_FORM);
+      setValues(EMPTY_FORM);
       setFeedback('Merci ! Votre message a bien été envoyé, nous vous répondrons rapidement.');
-    } catch (apiError) {
-      setError(apiError.message);
-      setFieldErrors(apiError.fieldErrors ?? {});
-    } finally {
-      setIsSubmitting(false);
-    }
+    });
   }
+
+  const field = (name) => ({ name, value: values[name], error: fieldErrors[name], onChange: handleChange, required: true });
 
   return (
     <div className="contact-page">
@@ -55,68 +43,23 @@ const Contact = () => {
 
         <form className="contact-form" onSubmit={handleSubmit} noValidate>
           <div className="form-row">
-            <div className="input-group">
-              <input
-                type="text"
-                id="nom"
-                name="last_name"
-                value={form.last_name}
-                onChange={handleChange}
-                required
-                placeholder=" "
-              />
-              <label htmlFor="nom">Nom *</label>
-              <FormMessage type="field">{fieldErrors.last_name}</FormMessage>
-            </div>
-
-            <div className="input-group">
-              <input
-                type="text"
-                id="prenom"
-                name="first_name"
-                value={form.first_name}
-                onChange={handleChange}
-                required
-                placeholder=" "
-              />
-              <label htmlFor="prenom">Prénom *</label>
-              <FormMessage type="field">{fieldErrors.first_name}</FormMessage>
-            </div>
+            <FormField id="nom" label="Nom *" {...field('last_name')} />
+            <FormField id="prenom" label="Prénom *" {...field('first_name')} />
           </div>
 
           <div className="form-row">
-            <div className="input-group full-width">
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                required
-                placeholder=" "
-              />
-              <label htmlFor="email">Email *</label>
-              <FormMessage type="field">{fieldErrors.email}</FormMessage>
-            </div>
+            <FormField id="email" type="email" label="Email *" className="full-width" {...field('email')} />
           </div>
 
-          <div className="input-group full-width">
-            <textarea
-              id="message"
-              name="message"
-              rows="4"
-              value={form.message}
-              onChange={handleChange}
-              required
-              placeholder=" "
-            ></textarea>
-            <label htmlFor="message">Message *</label>
-            <FormMessage type="field">{fieldErrors.message}</FormMessage>
-          </div>
+          <FormField id="message" label="Message *" multiline rows="4" className="full-width" {...field('message')} />
 
-          <button type="submit" className="btn-primary" disabled={isSubmitting}>
+          <button type="submit" className="btn btn-primary contact-submit" disabled={isSubmitting}>
             {isSubmitting ? 'Envoi...' : 'Contact'}
           </button>
+          <p className="form-legal">
+            Vos informations servent uniquement à vous répondre et sont conservées 12 mois au plus.
+            Voir notre <Link to="/confidentialite">politique de confidentialité</Link>.
+          </p>
         </form>
       </div>
     </div>

@@ -6,27 +6,47 @@
  * remontée des erreurs de validation renvoyées par DRF.
  */
 
-// URL de base de l'API Django. En production, VITE_API_URL est définie sur
-// Vercel et injectée au moment du build ; en local, on vise le serveur Django.
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000/api';
+// L'API est appelée sur le domaine du site : Vercel (production) et Vite
+// (développement) relaient /api vers Django. Le cookie de session reste
+// ainsi un cookie « du site », et aucune règle CORS n'est nécessaire.
+const API_URL = '/api';
 
-const ACCESS_TOKEN_KEY = 'weeb_access_token';
-const REFRESH_TOKEN_KEY = 'weeb_refresh_token';
+const SESSION_HINT_KEY = 'weeb_session';
+const UNREACHABLE = "Impossible de joindre le serveur. Vérifiez votre connexion puis réessayez.";
 
-export const tokenStorage = {
-  getAccess: () => localStorage.getItem(ACCESS_TOKEN_KEY),
-  getRefresh: () => localStorage.getItem(REFRESH_TOKEN_KEY),
+let accessToken = null;
+let onSessionEnd = () => {};
 
-  save: ({ access, refresh }) => {
-    localStorage.setItem(ACCESS_TOKEN_KEY, access);
-    if (refresh) {
-      localStorage.setItem(REFRESH_TOKEN_KEY, refresh);
-    }
+/**
+ * Session de l'utilisateur.
+ *
+ * Le token d'accès (30 min) reste en mémoire : il disparaît en fermant
+ * l'onglet et aucun script ne peut le retrouver dans le stockage du
+ * navigateur. Le token de rafraîchissement est dans un cookie HttpOnly,
+ * illisible par le JavaScript : seul le serveur le voit.
+ *
+ * Le localStorage ne garde qu'un indicateur sans valeur secrète : « ce
+ * navigateur a une session ». Il évite d'appeler l'API au chargement pour
+ * les visiteurs qui ne se sont jamais connectés.
+ */
+export const session = {
+  getAccess: () => accessToken,
+
+  start(access) {
+    accessToken = access;
+    localStorage.setItem(SESSION_HINT_KEY, '1');
   },
 
-  clear: () => {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
+  clear() {
+    accessToken = null;
+    localStorage.removeItem(SESSION_HINT_KEY);
+  },
+
+  mayExist: () => accessToken !== null || localStorage.getItem(SESSION_HINT_KEY) === '1',
+
+  /** Fonction appelée quand le serveur met fin à la session (AuthContext s'y abonne). */
+  onEnd(callback) {
+    onSessionEnd = callback;
   },
 };
 
@@ -65,27 +85,50 @@ function buildApiError(status, body) {
   return new ApiError(firstMessage ?? 'Formulaire invalide.', { status, fieldErrors });
 }
 
-/** Tente de renouveler le token d'accès. Retourne le nouveau token ou `null`. */
-async function refreshAccessToken() {
-  const refresh = tokenStorage.getRefresh();
-  if (!refresh) {
-    return null;
+/** Demande un token d'accès neuf. Le navigateur joint lui-même le cookie de session. */
+async function fetchNewAccessToken() {
+  let response;
+  try {
+    response = await fetch(`${API_URL}/auth/refresh/`, { method: 'POST' });
+  } catch {
+    // Serveur injoignable : la session n'est peut-être pas finie, on la garde.
+    throw new ApiError(UNREACHABLE);
   }
-
-  const response = await fetch(`${API_URL}/auth/refresh/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh }),
-  });
 
   if (!response.ok) {
-    tokenStorage.clear();
+    session.clear();
+    onSessionEnd();
     return null;
   }
 
-  const data = await response.json();
-  tokenStorage.save({ access: data.access, refresh: data.refresh });
-  return data.access;
+  const { access } = await response.json();
+  session.start(access);
+  return access;
+}
+
+let pendingRefresh = null;
+
+/**
+ * Renouvelle le token d'accès. Retourne le nouveau token, ou `null` si la
+ * session est terminée.
+ *
+ * Chaque renouvellement grille le cookie utilisé (rotation). Deux
+ * renouvellements lancés en même temps, avec le même cookie, feraient donc
+ * échouer le second et déconnecteraient l'utilisateur. D'où deux verrous :
+ * - dans l'onglet, les appels simultanés partagent la même requête ;
+ * - entre onglets, `navigator.locks` les fait passer l'un après l'autre,
+ *   chacun avec le cookie le plus récent.
+ */
+function refreshAccessToken() {
+  if (!pendingRefresh) {
+    const run = navigator.locks
+      ? navigator.locks.request('weeb-refresh', fetchNewAccessToken)
+      : fetchNewAccessToken();
+    pendingRefresh = run.finally(() => {
+      pendingRefresh = null;
+    });
+  }
+  return pendingRefresh;
 }
 
 /**
@@ -113,20 +156,27 @@ export async function request(path, { method = 'GET', body, auth = true } = {}) 
     });
   };
 
-  let response;
-  try {
-    response = await sendRequest(tokenStorage.getAccess());
-  } catch {
-    throw new ApiError("Impossible de joindre le serveur. Vérifiez qu'il est démarré.");
-  }
+  const send = async (token) => {
+    try {
+      return await sendRequest(token);
+    } catch {
+      throw new ApiError(UNREACHABLE);
+    }
+  };
+
+  const sentToken = session.getAccess();
+  let response = await send(sentToken);
 
   // Un 401 sur une requête authentifiée signifie généralement que le token
-  // d'accès a expiré : on le renouvelle puis on rejoue la requête une fois.
-  if (response.status === 401 && auth && tokenStorage.getRefresh()) {
-    const newToken = await refreshAccessToken();
-    if (newToken) {
-      response = await sendRequest(newToken);
-    }
+  // d'accès a expiré (ou qu'il n'est pas encore chargé, juste après un
+  // rechargement de la page) : on le renouvelle puis on rejoue la requête une
+  // fois. Si la session est vraiment terminée, on la rejoue sans token, comme
+  // un visiteur : les pages publiques (le blog) restent ainsi lisibles.
+  if (response.status === 401 && auth && session.mayExist()) {
+    // Si un autre appel a renouvelé le token entre-temps, inutile de recommencer.
+    const current = session.getAccess();
+    const newToken = current && current !== sentToken ? current : await refreshAccessToken();
+    response = await send(newToken);
   }
 
   if (response.status === 204) {
@@ -146,20 +196,39 @@ export async function request(path, { method = 'GET', body, auth = true } = {}) 
 export const authApi = {
   signup: (payload) => request('/auth/signup/', { method: 'POST', body: payload, auth: false }),
   login: (payload) => request('/auth/login/', { method: 'POST', body: payload, auth: false }),
+  logout: () => request('/auth/logout/', { method: 'POST', auth: false }),
   me: () => request('/auth/me/'),
+  updateMe: (payload) => request('/auth/me/', { method: 'PATCH', body: payload }),
+  deleteMe: (password) => request('/auth/me/', { method: 'DELETE', body: { password } }),
+  changePassword: (payload) => request('/auth/password-change/', { method: 'POST', body: payload }),
   requestPasswordReset: (email) =>
     request('/auth/password-reset/', { method: 'POST', body: { email }, auth: false }),
   confirmPasswordReset: (payload) =>
     request('/auth/password-reset/confirm/', { method: 'POST', body: payload, auth: false }),
 };
 
-/** Endpoints des articles du blog. */
+/**
+ * Endpoints des articles du blog.
+ *
+ * Le token est joint quand il existe : l'auteur d'un brouillon (ou un admin)
+ * peut ainsi l'ouvrir et le modifier. Le blog public, lui, ne liste que les
+ * articles publiés, que l'on soit connecté ou non.
+ */
 export const articlesApi = {
-  list: (page = 1) => request(`/articles/?page=${page}`, { auth: false }),
-  retrieve: (slug) => request(`/articles/${slug}/`, { auth: false }),
+  list: (page = 1) => request(`/articles/?page=${page}`),
+  mine: (page = 1) => request(`/articles/?mine=true&page=${page}`),
+  retrieve: (slug) => request(`/articles/${encodeURIComponent(slug)}/`),
   create: (payload) => request('/articles/', { method: 'POST', body: payload }),
-  update: (slug, payload) => request(`/articles/${slug}/`, { method: 'PATCH', body: payload }),
-  remove: (slug) => request(`/articles/${slug}/`, { method: 'DELETE' }),
+  update: (slug, payload) =>
+    request(`/articles/${encodeURIComponent(slug)}/`, { method: 'PATCH', body: payload }),
+  remove: (slug) => request(`/articles/${encodeURIComponent(slug)}/`, { method: 'DELETE' }),
+};
+
+/** Inscription et désinscription à la newsletter (pied de page). */
+export const newsletterApi = {
+  subscribe: (email) => request('/newsletter/', { method: 'POST', body: { email }, auth: false }),
+  unsubscribe: (token) =>
+    request('/newsletter/unsubscribe/', { method: 'POST', body: { token }, auth: false }),
 };
 
 /** Endpoint du formulaire de contact. */

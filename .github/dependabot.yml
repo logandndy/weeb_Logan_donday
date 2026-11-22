@@ -1,0 +1,24 @@
+# Dependabot ouvre chaque semaine une PR par dépendance à mettre à jour
+# (failles de sécurité comprises). La CI vérifie la PR comme les autres.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /backend
+    schedule: { interval: weekly }
+    target-branch: develop
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly }
+    target-branch: develop
+  - package-ecosystem: npm
+    directory: /e2e
+    schedule: { interval: weekly }
+    target-branch: develop
+  - package-ecosystem: docker
+    directory: /backend
+    schedule: { interval: weekly }
+    target-branch: develop
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly }
+    target-branch: develop

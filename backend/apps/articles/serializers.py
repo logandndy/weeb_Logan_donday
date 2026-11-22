@@ -19,10 +19,30 @@ class ArticleListSerializer(serializers.ModelSerializer):
     """
 
     author = ArticleAuthorSerializer(read_only=True)
+    reading_time = serializers.SerializerMethodField()
 
     class Meta:
         model = Article
-        fields = ["id", "title", "slug", "excerpt", "cover_image", "author", "created_at"]
+        # is_published : la page Mon espace affiche un badge sur les brouillons.
+        fields = [
+            "id",
+            "title",
+            "slug",
+            "excerpt",
+            "cover_image",
+            "author",
+            "is_published",
+            "reading_time",
+            "created_at",
+        ]
+
+    def get_reading_time(self, article):
+        """Temps de lecture estimé, en minutes : 200 mots par minute, 1 minute au moins.
+
+        Calculé ici parce que la liste n'envoie pas le contenu : le frontend ne
+        pourrait pas compter les mots lui-même.
+        """
+        return max(1, round(len(article.content.split()) / 200))
 
 
 class ArticleDetailSerializer(ArticleListSerializer):
@@ -42,6 +62,7 @@ class ArticleDetailSerializer(ArticleListSerializer):
             "cover_image",
             "author",
             "is_published",
+            "reading_time",
             "created_at",
             "updated_at",
         ]

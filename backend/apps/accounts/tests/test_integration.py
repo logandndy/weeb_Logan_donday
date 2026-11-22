@@ -6,15 +6,27 @@ limitation de débit fonctionnent ensemble, comme pour le frontend.
 """
 
 import re
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core import mail
+from django.core.cache import cache
 from django.test import tag
 from rest_framework import status
 from rest_framework.test import APITestCase
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.accounts.serializers import build_password_reset_payload
-from weeb_api.tests.factories import VALID_PASSWORD, ThrottleResetMixin, auth_client, make_user
+from apps.accounts.sessions import REFRESH_COOKIE
+from apps.articles.models import Article
+from weeb_api.tests.factories import (
+    VALID_PASSWORD,
+    ThrottleResetMixin,
+    auth_client,
+    make_admin,
+    make_article,
+    make_user,
+)
 
 User = get_user_model()
 
@@ -50,18 +62,39 @@ class SignupTests(ThrottleResetMixin, APITestCase):
 
         self.assertEqual(
             response.data["detail"],
-            "Votre compte a bien été créé. Il doit être validé par un "
-            "administrateur avant que vous puissiez vous connecter.",
+            "Inscription enregistrée. Votre compte doit être validé par un "
+            "administrateur avant que vous puissiez vous connecter. Si cette adresse "
+            "avait déjà un compte, un email vous l'indique.",
         )
         self.assertNotIn("password", response.data)
         self.assertNotIn("password_confirm", response.data)
 
-    def test_signup_refuse_un_email_deja_utilise(self):
+    def test_signup_ne_renvoie_ni_identifiant_ni_donnees(self):
+        response = self.inscription()
+
+        self.assertEqual(set(response.data), {"detail"})
+
+    def test_email_deja_utilise_meme_reponse_qu_une_vraie_inscription(self):
+        """Sinon, on pourrait tester des adresses pour savoir qui a un compte."""
+        nouvelle = self.inscription(email="bob@weeb.fr")
         make_user(email="ada@weeb.fr")
 
-        response = self.inscription(email="ADA@weeb.fr", last_name="L")
+        existante = self.inscription(email="ADA@weeb.fr", last_name="L")
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(existante.status_code, nouvelle.status_code)
+        self.assertEqual(existante.data, nouvelle.data)
+
+    def test_email_deja_utilise_ne_cree_rien_et_previent_le_titulaire(self):
+        titulaire = make_user(email="ada@weeb.fr")
+
+        self.inscription(email="ADA@weeb.fr", password=NOUVEAU_MDP, password_confirm=NOUVEAU_MDP)
+
+        self.assertEqual(User.objects.filter(email__iexact="ada@weeb.fr").count(), 1)
+        titulaire.refresh_from_db()
+        self.assertTrue(titulaire.check_password(VALID_PASSWORD), "Le mot de passe ne doit pas changer.")
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["ada@weeb.fr"])
+        self.assertIn("vous en avez déjà un", mail.outbox[0].body)
 
     def test_signup_refuse_deux_mots_de_passe_differents(self):
         response = self.inscription(password_confirm="AutreMotDePasse!2026")
@@ -92,15 +125,26 @@ class LoginTests(ThrottleResetMixin, APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_login_retourne_les_tokens_et_le_profil(self):
+    def test_login_retourne_le_token_d_acces_et_le_profil(self):
         self.activer()
 
         response = self.connexion(self.user.email)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("access", response.data)
-        self.assertIn("refresh", response.data)
         self.assertEqual(response.data["user"]["email"], self.user.email)
+
+    def test_le_refresh_part_dans_un_cookie_protege_et_jamais_dans_le_json(self):
+        """Un token lisible par le JavaScript pourrait être volé par une faille XSS."""
+        self.activer()
+
+        response = self.connexion(self.user.email)
+
+        self.assertNotIn("refresh", response.data)
+        cookie = response.cookies[REFRESH_COOKIE]
+        self.assertTrue(cookie["httponly"])
+        self.assertEqual(cookie["samesite"], "Strict")
+        self.assertEqual(cookie["path"], "/api/auth/")
 
     def test_login_renvoie_le_profil_complet_attendu_par_le_frontend(self):
         self.activer()
@@ -160,40 +204,51 @@ class LoginTests(ThrottleResetMixin, APITestCase):
 
 @tag("integration")
 class TokenTests(ThrottleResetMixin, APITestCase):
-    """Renouvellement (/refresh/) et vérification (/verify/) des tokens JWT."""
+    """Renouvellement des tokens JWT (/refresh/)."""
 
     def setUp(self):
         super().setUp()
-        make_user(email="ada@weeb.fr")
-        response = self.client.post(
+        self.user = make_user(email="ada@weeb.fr")
+        # Le client de test garde les cookies, comme un navigateur.
+        self.client.post(
             "/api/auth/login/", {"email": "ada@weeb.fr", "password": VALID_PASSWORD}, format="json"
         )
-        self.tokens = response.data
+        self.refresh = self.client.cookies[REFRESH_COOKIE].value
 
-    def test_refresh_donne_un_nouveau_couple_de_tokens(self):
+    def test_refresh_donne_un_token_d_acces_et_renouvelle_le_cookie(self):
         """ROTATE_REFRESH_TOKENS : chaque renouvellement fournit aussi un nouveau refresh."""
-        response = self.client.post(
-            "/api/auth/refresh/", {"refresh": self.tokens["refresh"]}, format="json"
-        )
+        response = self.client.post("/api/auth/refresh/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn("access", response.data)
-        self.assertNotEqual(response.data["refresh"], self.tokens["refresh"])
+        self.assertNotIn("refresh", response.data)
+        self.assertNotEqual(response.cookies[REFRESH_COOKIE].value, self.refresh)
 
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {response.data['access']}")
         self.assertEqual(self.client.get("/api/auth/me/").status_code, status.HTTP_200_OK)
 
-    def test_refresh_refuse_un_token_invalide(self):
-        response = self.client.post("/api/auth/refresh/", {"refresh": "invalide"}, format="json")
+    def test_refresh_sans_cookie_renvoie_401(self):
+        self.client.cookies.clear()
+
+        response = self.client.post("/api/auth/refresh/")
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.data["detail"], "Votre session a expiré. Reconnectez-vous.")
 
-    def test_verify_accepte_un_token_valide_et_refuse_un_faux(self):
-        valide = self.client.post("/api/auth/verify/", {"token": self.tokens["access"]}, format="json")
-        faux = self.client.post("/api/auth/verify/", {"token": "faux"}, format="json")
+    def test_refresh_refuse_un_token_invalide_et_efface_le_cookie(self):
+        self.client.cookies[REFRESH_COOKIE] = "invalide"
 
-        self.assertEqual(valide.status_code, status.HTTP_200_OK)
-        self.assertEqual(faux.status_code, status.HTTP_401_UNAUTHORIZED)
+        response = self.client.post("/api/auth/refresh/")
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.cookies[REFRESH_COOKIE].value, "")
+
+    def test_refresh_d_un_compte_supprime_renvoie_401_et_non_500(self):
+        """La suppression du compte efface aussi sa liste noire : le token doit quand même être refusé."""
+        self.user.delete()
+
+        response = self.client.post("/api/auth/refresh/")
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
 @tag("integration")
@@ -278,6 +333,16 @@ class PasswordResetEmailTests(ThrottleResetMixin, APITestCase):
 
         self.assertEqual(len(mail.outbox), 0)
 
+    def test_aucun_email_pour_un_compte_pas_encore_valide(self):
+        make_user(email="attente@weeb.fr", active=False)
+
+        response = self.client.post(
+            "/api/auth/password-reset/", {"email": "attente@weeb.fr"}, format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(mail.outbox), 0)
+
 
 @tag("integration")
 class ThrottlingTests(ThrottleResetMixin, APITestCase):
@@ -322,3 +387,243 @@ class ThrottlingTests(ThrottleResetMixin, APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+@tag("integration")
+class ValidationDesComptesTests(ThrottleResetMixin, APITestCase):
+    """Inscription et validation par l'admin : chaque étape prévient la bonne personne."""
+
+    def setUp(self):
+        super().setUp()
+        self.admin = make_admin()
+
+    def test_l_inscription_previent_les_admins(self):
+        self.client.post(
+            "/api/auth/signup/",
+            {
+                "first_name": "Bob",
+                "last_name": "Martin",
+                "email": "bob@weeb.fr",
+                "password": VALID_PASSWORD,
+                "password_confirm": VALID_PASSWORD,
+            },
+            format="json",
+        )
+
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.admin.email])
+
+    def test_l_action_valider_previent_seulement_les_comptes_en_attente(self):
+        en_attente = make_user("attente@weeb.fr", active=False)
+        deja_actif = make_user("actif@weeb.fr")
+        self.client.force_login(self.admin)
+
+        self.client.post(
+            "/admin/accounts/user/",
+            {"action": "valider_comptes", "_selected_action": [en_attente.pk, deja_actif.pk]},
+        )
+
+        en_attente.refresh_from_db()
+        self.assertTrue(en_attente.is_active)
+        self.assertEqual([m.to for m in mail.outbox], [["attente@weeb.fr"]])
+
+
+@tag("integration")
+class SessionsTests(ThrottleResetMixin, APITestCase):
+    """Un token de rafraîchissement révoqué ne doit plus jamais donner accès au compte."""
+
+    def setUp(self):
+        super().setUp()
+        self.user = make_user("ada@weeb.fr")
+        self.client.post(
+            "/api/auth/login/", {"email": "ada@weeb.fr", "password": VALID_PASSWORD}, format="json"
+        )
+        self.refresh = self.client.cookies[REFRESH_COOKIE].value
+
+    def rafraichir(self, refresh):
+        """Rejoue un token précis, comme le ferait quelqu'un qui l'aurait copié."""
+        self.client.cookies[REFRESH_COOKIE] = refresh
+        return self.client.post("/api/auth/refresh/")
+
+    def test_la_deconnexion_revoque_le_token_et_efface_le_cookie(self):
+        response = self.client.post("/api/auth/logout/")
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(response.cookies[REFRESH_COOKIE].value, "")
+        self.assertEqual(self.rafraichir(self.refresh).status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_la_deconnexion_reussit_meme_sans_session(self):
+        self.client.cookies.clear()
+
+        self.assertEqual(self.client.post("/api/auth/logout/").status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_un_token_deja_utilise_ne_resert_pas(self):
+        """Rotation : chaque renouvellement donne un nouveau token et grille l'ancien."""
+        nouveau = self.rafraichir(self.refresh).cookies[REFRESH_COOKIE].value
+        self.assertEqual(self.rafraichir(nouveau).status_code, status.HTTP_200_OK)
+
+        self.assertEqual(self.rafraichir(self.refresh).status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_une_rotation_dont_la_reponse_s_est_perdue_ne_deconnecte_pas(self):
+        """Page rechargée pendant le renouvellement : le nouveau cookie n'est jamais arrivé."""
+        perdu = self.rafraichir(self.refresh).cookies[REFRESH_COOKIE].value
+
+        rejoue = self.rafraichir(self.refresh)
+
+        self.assertEqual(rejoue.status_code, status.HTTP_200_OK)
+        self.assertIn("access", rejoue.data)
+        # Le cookie perdu ne doit plus servir : une seule session continue.
+        self.assertEqual(self.rafraichir(perdu).status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_le_successeur_est_note_avant_de_griller_l_ancien(self):
+        """Une requête simultanée qui trouve l'ancien token grillé doit trouver son successeur."""
+        vu = {}
+        griller = RefreshToken.blacklist
+
+        def espion(token):
+            vu["successeur"] = cache.get(f"rotation:{token['jti']}")
+            return griller(token)
+
+        with patch.object(RefreshToken, "blacklist", espion):
+            self.rafraichir(self.refresh)
+
+        self.assertIsNotNone(vu.get("successeur"))
+
+    def test_le_rattrapage_ne_sert_qu_une_fois(self):
+        self.rafraichir(self.refresh)
+        self.rafraichir(self.refresh)
+
+        self.assertEqual(self.rafraichir(self.refresh).status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_pas_de_rattrapage_apres_une_deconnexion(self):
+        nouveau = self.rafraichir(self.refresh).cookies[REFRESH_COOKIE].value
+        self.client.cookies[REFRESH_COOKIE] = nouveau
+        self.client.post("/api/auth/logout/")
+
+        self.assertEqual(self.rafraichir(self.refresh).status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_pas_de_rattrapage_apres_un_changement_de_mot_de_passe(self):
+        """Toutes les sessions sont révoquées, successeur compris : rien n'est repêché."""
+        self.rafraichir(self.refresh)
+        auth_client(self.client, self.user)
+        self.client.post(
+            "/api/auth/password-change/",
+            {"old_password": VALID_PASSWORD, "new_password": NOUVEAU_MDP, "new_password_confirm": NOUVEAU_MDP},
+            format="json",
+        )
+        self.client.credentials()
+
+        self.assertEqual(self.rafraichir(self.refresh).status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_reinitialiser_le_mot_de_passe_deconnecte_partout(self):
+        payload = build_password_reset_payload(self.user)
+        self.client.post(
+            "/api/auth/password-reset/confirm/",
+            {**payload, "new_password": NOUVEAU_MDP, "new_password_confirm": NOUVEAU_MDP},
+            format="json",
+        )
+
+        self.assertEqual(self.rafraichir(self.refresh).status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_suspendre_un_compte_coupe_ses_sessions(self):
+        self.client.force_login(make_admin())
+        self.client.post(
+            "/admin/accounts/user/",
+            {"action": "suspendre_comptes", "_selected_action": [self.user.pk]},
+        )
+
+        self.assertEqual(self.rafraichir(self.refresh).status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+@tag("integration")
+class MonEspaceTests(ThrottleResetMixin, APITestCase):
+    """Page Mon espace : profil, changement de mot de passe, suppression du compte."""
+
+    def setUp(self):
+        super().setUp()
+        self.user = make_user("ada@weeb.fr")
+        auth_client(self.client, self.user)
+
+    def test_modifier_son_prenom_et_son_nom(self):
+        response = self.client.patch("/api/auth/me/", {"first_name": "Augusta", "last_name": "King"}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["full_name"], "Augusta King")
+
+    def test_l_email_et_les_droits_ne_sont_pas_modifiables(self):
+        """Un utilisateur ne doit pas pouvoir se donner les droits d'administrateur."""
+        self.client.patch(
+            "/api/auth/me/", {"email": "pirate@weeb.fr", "is_staff": True, "is_active": True}, format="json"
+        )
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, "ada@weeb.fr")
+        self.assertFalse(self.user.is_staff)
+
+    def test_suppression_refusee_sans_le_bon_mot_de_passe(self):
+        response = self.client.delete("/api/auth/me/", {"password": "mauvais"}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue(get_user_model().objects.filter(pk=self.user.pk).exists())
+
+    def test_suppression_bloquee_apres_5_essais_par_heure(self):
+        """Elle vérifie un mot de passe : sans limite, on pourrait le deviner par essais."""
+        for _ in range(5):
+            self.client.delete("/api/auth/me/", {"password": "mauvais"}, format="json")
+
+        response = self.client.delete("/api/auth/me/", {"password": VALID_PASSWORD}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertEqual(self.client.get("/api/auth/me/").status_code, status.HTTP_200_OK)
+
+    def test_supprimer_son_compte_efface_aussi_ses_articles(self):
+        make_article(self.user)
+
+        response = self.client.delete("/api/auth/me/", {"password": VALID_PASSWORD}, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(get_user_model().objects.filter(pk=self.user.pk).exists())
+        self.assertFalse(Article.objects.exists())
+        self.assertEqual(response.cookies[REFRESH_COOKIE].value, "")
+
+    def changer(self, ancien, nouveau=NOUVEAU_MDP, confirmation=None):
+        return self.client.post(
+            "/api/auth/password-change/",
+            {"old_password": ancien, "new_password": nouveau, "new_password_confirm": confirmation or nouveau},
+            format="json",
+        )
+
+    def test_changement_refuse_avec_un_mauvais_mot_de_passe_actuel(self):
+        response = self.changer("mauvais")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("old_password", response.data)
+
+    def test_changement_refuse_un_mot_de_passe_faible(self):
+        response = self.changer(VALID_PASSWORD, "12345678")
+
+        self.assertIn("new_password", response.data)
+
+    def test_changement_reussi_coupe_les_anciennes_sessions_et_en_ouvre_une(self):
+        self.client.post(
+            "/api/auth/login/", {"email": "ada@weeb.fr", "password": VALID_PASSWORD}, format="json"
+        )
+        ancien_refresh = self.client.cookies[REFRESH_COOKIE].value
+
+        response = self.changer(VALID_PASSWORD)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", response.data)
+        nouveau_refresh = response.cookies[REFRESH_COOKIE].value
+        self.assertNotEqual(nouveau_refresh, ancien_refresh)
+        self.client.cookies[REFRESH_COOKIE] = ancien_refresh
+        rejoue = self.client.post("/api/auth/refresh/")
+        self.assertEqual(rejoue.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password(NOUVEAU_MDP))
+
+    def test_mon_espace_exige_d_etre_connecte(self):
+        self.client.credentials()
+
+        self.assertEqual(self.client.get("/api/auth/me/").status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(self.changer(VALID_PASSWORD).status_code, status.HTTP_401_UNAUTHORIZED)

@@ -133,7 +133,8 @@ class ArticleDetailSerializerTests(SimpleTestCase):
 class ArticleListSerializerTests(SimpleTestCase):
     """La liste n'envoie pas le contenu complet, pour garder une réponse légère."""
 
-    def test_liste_sans_contenu_ni_statut(self):
+    def test_liste_sans_contenu_mais_avec_le_statut(self):
+        """Le statut sert au badge « Brouillon » de la page Mon espace."""
         article = Article(
             id=1,
             title="Titre",
@@ -145,7 +146,8 @@ class ArticleListSerializerTests(SimpleTestCase):
         data = ArticleListSerializer(article).data
 
         self.assertNotIn("content", data)
-        self.assertNotIn("is_published", data)
+        self.assertIn("is_published", data)
+        self.assertIn("reading_time", data)
         self.assertEqual(data["author"], {"id": 1, "full_name": "Ada Lovelace"})
 
 
@@ -178,3 +180,18 @@ class IsAuthorOrReadOnlyTests(SimpleTestCase):
 
     def test_ecriture_refusee_a_un_visiteur(self):
         self.assertFalse(self.autorise("PATCH", AnonymousUser()))
+
+
+@tag("unit")
+class ReadingTimeTests(SimpleTestCase):
+    """Temps de lecture affiché sur les cartes : 200 mots par minute, 1 minute au moins."""
+
+    def temps_pour(self, nombre_de_mots):
+        article = Article(title="Titre", content="mot " * nombre_de_mots, author=User(id=1))
+        return ArticleListSerializer(article).data["reading_time"]
+
+    def test_un_article_court_compte_au_moins_une_minute(self):
+        self.assertEqual(self.temps_pour(20), 1)
+
+    def test_mille_mots_font_cinq_minutes(self):
+        self.assertEqual(self.temps_pour(1000), 5)
