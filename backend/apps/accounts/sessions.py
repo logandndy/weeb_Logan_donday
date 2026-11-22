@@ -6,8 +6,10 @@ est rangé dans un cookie que le JavaScript ne peut pas lire.
 """
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from rest_framework_simplejwt.exceptions import TokenBackendError
+from rest_framework_simplejwt.exceptions import TokenBackendError, TokenError
+from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.state import token_backend
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -63,6 +65,32 @@ def remember_rotation(old_token, new_token):
         cache.set(f"rotation:{old_jti}", new_jti, timeout=ROTATION_GRACE_SECONDS)
 
 
+def rotate_refresh_token(raw_token):
+    """Échange un token de rafraîchissement valide contre un neuf (rotation).
+
+    Retourne le nouveau token, ou `None` si l'ancien est absent, expiré,
+    révoqué, ou si le compte est suspendu ou supprimé.
+    """
+    try:
+        old = RefreshToken(raw_token)  # signature, expiration et liste noire
+    except TokenError:
+        return None
+    user = (
+        get_user_model()
+        .objects.filter(pk=old.payload.get(api_settings.USER_ID_CLAIM), is_active=True)
+        .first()
+    )
+    if user is None:
+        return None
+
+    new = RefreshToken.for_user(user)
+    # Le successeur est noté AVANT de griller l'ancien token : une requête
+    # simultanée (page rechargée) qui le trouve grillé trouve aussi son successeur.
+    remember_rotation(old, new)
+    old.blacklist()
+    return new
+
+
 def renew_after_lost_rotation(raw_token):
     """Rattrape une rotation dont la réponse n'est jamais arrivée au navigateur.
 
@@ -78,7 +106,7 @@ def renew_after_lost_rotation(raw_token):
 
     Retourne un nouveau token de rafraîchissement, ou `None`.
     """
-    old_jti = _jti(raw_token)
+    old_jti = _jti(raw_token) if raw_token else None
     successor_jti = cache.get(f"rotation:{old_jti}") if old_jti else None
     if successor_jti is None:
         return None
