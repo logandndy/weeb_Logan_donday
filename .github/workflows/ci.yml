@@ -226,4 +226,6 @@ jobs:
       - name: Smoke test - le frontend répond et relaie l'API
         run: |
           curl -fsS -o /dev/null https://weeb-logan-donday.vercel.app/
-          curl -fsS https://weeb-logan-donday.vercel.app/api/ping/
+          # Le relais doit renvoyer la réponse JSON de l'API, pas la page
+          # d'accueil (qui répond 200 elle aussi).
+          curl -fsS https://weeb-logan-donday.vercel.app/api/ping/ | jq -e '.status == "ok"'
