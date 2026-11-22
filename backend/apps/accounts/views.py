@@ -1,14 +1,11 @@
 """Vues d'authentification : inscription, connexion, session, profil, mot de passe oublié."""
 
-from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 from rest_framework import generics, permissions, status
-from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
-from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
@@ -28,9 +25,9 @@ from .serializers import (
 from .sessions import (
     REFRESH_COOKIE,
     delete_refresh_cookie,
-    remember_rotation,
     renew_after_lost_rotation,
     revoke_all_sessions,
+    rotate_refresh_token,
     set_refresh_cookie,
 )
 
@@ -109,28 +106,17 @@ class RefreshView(APIView):
     def post(self, request):
         """Renvoie un token d'accès neuf, ou 401 et efface le cookie si la session est finie."""
         raw_token = request.COOKIES.get(REFRESH_COOKIE, "")
-        serializer = TokenRefreshSerializer(data={"refresh": raw_token})
-        try:
-            is_valid = serializer.is_valid()
-        except (TokenError, AuthenticationFailed, get_user_model().DoesNotExist):
-            # Token expiré ou révoqué, compte suspendu ou supprimé.
-            is_valid = False
+        refresh = rotate_refresh_token(raw_token) or renew_after_lost_rotation(raw_token)
+        if refresh is None:
+            # Token absent, expiré ou révoqué, compte suspendu ou supprimé.
+            response = Response(
+                {"detail": "Votre session a expiré. Reconnectez-vous."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+            delete_refresh_cookie(response)
+            return response
 
-        if is_valid:
-            access, refresh = serializer.validated_data["access"], serializer.validated_data["refresh"]
-            remember_rotation(raw_token, refresh)
-        else:
-            renewed = renew_after_lost_rotation(raw_token) if raw_token else None
-            if renewed is None:
-                response = Response(
-                    {"detail": "Votre session a expiré. Reconnectez-vous."},
-                    status=status.HTTP_401_UNAUTHORIZED,
-                )
-                delete_refresh_cookie(response)
-                return response
-            access, refresh = str(renewed.access_token), renewed
-
-        response = Response({"access": access})
+        response = Response({"access": str(refresh.access_token)})
         set_refresh_cookie(response, refresh)
         return response
 

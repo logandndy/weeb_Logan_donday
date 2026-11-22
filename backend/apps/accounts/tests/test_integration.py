@@ -6,12 +6,15 @@ limitation de débit fonctionnent ensemble, comme pour le frontend.
 """
 
 import re
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core import mail
+from django.core.cache import cache
 from django.test import tag
 from rest_framework import status
 from rest_framework.test import APITestCase
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.accounts.serializers import build_password_reset_payload
 from apps.accounts.sessions import REFRESH_COOKIE
@@ -471,6 +474,20 @@ class SessionsTests(ThrottleResetMixin, APITestCase):
         self.assertIn("access", rejoue.data)
         # Le cookie perdu ne doit plus servir : une seule session continue.
         self.assertEqual(self.rafraichir(perdu).status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_le_successeur_est_note_avant_de_griller_l_ancien(self):
+        """Une requête simultanée qui trouve l'ancien token grillé doit trouver son successeur."""
+        vu = {}
+        griller = RefreshToken.blacklist
+
+        def espion(token):
+            vu["successeur"] = cache.get(f"rotation:{token['jti']}")
+            return griller(token)
+
+        with patch.object(RefreshToken, "blacklist", espion):
+            self.rafraichir(self.refresh)
+
+        self.assertIsNotNone(vu.get("successeur"))
 
     def test_le_rattrapage_ne_sert_qu_une_fois(self):
         self.rafraichir(self.refresh)
