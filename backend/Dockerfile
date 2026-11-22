@@ -1,7 +1,7 @@
 # Image du backend Weeb (Django + gunicorn).
 # Image "slim" : Debian minimale, bien plus légère que l'image Python complète.
 # Même version que .python-version (poste de dev) et que la CI.
-FROM python:3.13-slim
+FROM python:3.15-slim
 
 # Pas de fichiers .pyc, logs affichés immédiatement (utile pour le monitoring).
 ENV PYTHONDONTWRITEBYTECODE=1 \
