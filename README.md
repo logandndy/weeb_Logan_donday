@@ -159,6 +159,16 @@ d'onglet propre à chaque page.
 - **Réveil du serveur** : l'API gratuite s'endort après 15 min sans visite. Le
   site la réveille dès l'arrivée sur l'accueil, et prévient si une attente
   dépasse 3 s (« Le serveur se réveille... »).
+- **Violet des boutons un peu plus foncé** (`#9333ea` au lieu de `#a855f7`) :
+  avec le violet de la maquette, le texte blanc n'atteignait pas le contraste
+  minimal WCAG AA (3,9:1 pour 4,5:1 demandés). Même chose pour les gris et le
+  lien du pied de page, sur fond blanc.
+
+**Audit Lighthouse** (accueil, mobile) : accessibilité 95 → **100**, SEO 92 →
+**100**, bonnes pratiques 100, performance 98. Corrections : contrastes ci-dessus,
+vrai `robots.txt` et `sitemap.xml` (avant, le site renvoyait la page HTML à leur
+place), et balises **Open Graph** avec une image d'aperçu : un lien Weeb partagé
+sur LinkedIn ou Discord affiche titre, description et visuel.
 
 ## Authentification et sécurité
 
