@@ -144,6 +144,13 @@ DATABASES = {
     )
 }
 
+# SQLite (local, tests E2E) : plusieurs requêtes simultanées peuvent écrire en
+# même temps. En mode IMMEDIATE, une transaction réserve l'écriture dès le
+# départ et attend son tour. Sinon, celle qui a déjà lu échoue aussitôt
+# (« database is locked »), et le cache en base ignore l'erreur sans rien dire.
+if DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3":
+    DATABASES["default"].setdefault("OPTIONS", {})["transaction_mode"] = "IMMEDIATE"
+
 
 # --- Authentification -------------------------------------------------------
 # Le modèle utilisateur est personnalisé : l'identifiant de connexion est
