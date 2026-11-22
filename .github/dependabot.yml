@@ -1,24 +1,43 @@
-# Dependabot ouvre chaque semaine une PR par dépendance à mettre à jour
-# (failles de sécurité comprises). La CI vérifie la PR comme les autres.
+# Dependabot propose les mises à jour des dépendances (failles de sécurité
+# comprises). La CI vérifie chaque PR comme les autres.
+#
+# Pour rester lisible : une seule PR par mois et par écosystème, qui regroupe
+# toutes les mises à jour mineures et correctives. Une version majeure peut
+# casser le code : elle arrive dans sa propre PR, pour être relue à part.
+# Les alertes de sécurité, elles, n'attendent pas le mois suivant.
 version: 2
 updates:
   - package-ecosystem: pip
     directory: /backend
-    schedule: { interval: weekly }
+    schedule: { interval: monthly }
     target-branch: develop
+    groups:
+      backend:
+        update-types: [minor, patch]
+
+  # Le front et les tests E2E partagent une seule PR.
   - package-ecosystem: npm
-    directory: /frontend
-    schedule: { interval: weekly }
+    directories: [/frontend, /e2e]
+    schedule: { interval: monthly }
     target-branch: develop
-  - package-ecosystem: npm
-    directory: /e2e
-    schedule: { interval: weekly }
-    target-branch: develop
+    groups:
+      javascript:
+        update-types: [minor, patch]
+
   - package-ecosystem: docker
     directory: /backend
-    schedule: { interval: weekly }
+    schedule: { interval: monthly }
     target-branch: develop
+    ignore:
+      # La production est en Python 3.13 (.python-version) : changer de
+      # version de Python est une décision, pas une mise à jour de routine.
+      - dependency-name: python
+        versions: [">=3.14"]
+
   - package-ecosystem: github-actions
     directory: /
-    schedule: { interval: weekly }
+    schedule: { interval: monthly }
     target-branch: develop
+    groups:
+      actions:
+        patterns: ["*"]
