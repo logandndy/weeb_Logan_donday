@@ -311,9 +311,13 @@ h2 {
 
 .mockup-placeholder img,
 .graphic-placeholder img {
+  display: block;
   width: 100%;
+  height: auto;
+  /* Les photos gardent le même cadre que le reste du site : arrondi et liseré violet. */
+  border: 1px solid var(--violet-bord);
   border-radius: var(--rayon-l);
-  box-shadow: var(--ombre);
+  box-shadow: var(--ombre), var(--ombre-violette);
 }
 
 @media (max-width: 900px) {
@@ -367,4 +371,27 @@ h2 {
     opacity: 1;
     transform: translateX(0);
   }
+}
+
+/* --- Derniers articles (LatestArticles.jsx) --- */
+
+.latest-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 80px 5% 0;
+  color: var(--blanc);
+}
+
+.latest-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.latest-header h2 {
+  margin: 0;
+  font-size: 2.25rem;
 }

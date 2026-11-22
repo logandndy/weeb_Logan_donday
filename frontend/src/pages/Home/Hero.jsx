@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 // L'image est importée plutôt que référencée par un chemin `/src/...` : Vite
 // la traite ainsi comme un asset et l'URL reste valide après le build.
-import heroImg from '../../assets/img-1.png';
+import heroImg from '../../assets/hero-code.webp';
 
 const Hero = () => {
   return (
@@ -25,7 +25,8 @@ const Hero = () => {
           </a>
         </div>
         <div className="hero-image-wrapper">
-          <img src={heroImg} alt="Interface du blog Weeb" className="hero-main-img" />
+          <img src={heroImg} alt="Écran d'ordinateur affichant du code HTML" className="hero-main-img"
+            width="1400" height="900" fetchPriority="high" />
         </div>
       </div>
     </section>

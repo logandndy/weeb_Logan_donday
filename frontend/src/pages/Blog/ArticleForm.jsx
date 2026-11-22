@@ -1,10 +1,13 @@
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
+import { Link, useBlocker, useNavigate, useParams } from 'react-router-dom';
 import { articlesApi } from '../../services/api';
 import useAuth from '../../hooks/useAuth';
 import useFetch from '../../hooks/useFetch';
 import useForm from '../../hooks/useForm';
 import FormField from '../../components/FormField';
 import FormMessage from '../../components/FormMessage';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import LoadingStatus from '../../components/LoadingStatus';
 import usePageTitle from '../../hooks/usePageTitle';
 import '../../styles/Blog.css';
 
@@ -33,7 +36,7 @@ const ArticleForm = () => {
   );
 
   if (isLoading) {
-    return <p className="blog-status">Chargement de l&apos;article...</p>;
+    return <LoadingStatus>Chargement de l&apos;article...</LoadingStatus>;
   }
 
   if (error) {
@@ -71,11 +74,34 @@ function ArticleFormFields({ slug, initialValues }) {
   const isEditing = slug !== undefined;
   const { values, fieldErrors, error, isSubmitting, handleChange, submit } = useForm(initialValues);
 
+  // Le formulaire a-t-il changé depuis son ouverture ? Une fois l'article
+  // enregistré, on laisse partir l'utilisateur sans rien lui demander.
+  const isSaved = useRef(false);
+  const isDirty = JSON.stringify(values) !== JSON.stringify(initialValues);
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      isDirty && !isSaved.current && currentLocation.pathname !== nextLocation.pathname,
+  );
+
+  // Fermeture de l'onglet ou rechargement : seul le navigateur peut prévenir.
+  useEffect(() => {
+    if (!isDirty) return undefined;
+    const warn = (event) => {
+      if (!isSaved.current) event.preventDefault();
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [isDirty]);
+
   function handleSubmit(event) {
     event.preventDefault();
     submit(async (form) => {
       const article = isEditing ? await articlesApi.update(slug, form) : await articlesApi.create(form);
-      navigate(`/blog/${article.slug}`);
+      isSaved.current = true;
+      let flash = 'Brouillon enregistré.';
+      if (isEditing) flash = 'Article modifié.';
+      else if (article.is_published) flash = 'Article publié !';
+      navigate(`/blog/${article.slug}`, { state: { flash } });
     });
   }
 
@@ -117,6 +143,16 @@ function ArticleFormFields({ slug, initialValues }) {
           </div>
         </form>
       </div>
+
+      <ConfirmDialog
+        open={blocker.state === 'blocked'}
+        title="Quitter sans enregistrer ?"
+        message="Vos modifications seront perdues."
+        confirmLabel="Quitter"
+        danger
+        onConfirm={() => blocker.proceed()}
+        onCancel={() => blocker.reset()}
+      />
     </div>
   );
 }

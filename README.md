@@ -133,13 +133,42 @@ focus violet et label flottant sur les champs ; contour clavier
 (`:focus-visible`) ; transitions de 0,3 s ; apparition au défilement.
 
 **Hors maquette** : bande défilante des partenaires, menu burger animé,
-inscription, mot de passe oublié, pagination, brouillons, page 404, page active
+inscription, mot de passe oublié, confirmation avant déconnexion et suppression, pagination, brouillons, page 404, page active
 dans la navbar, page **Mon espace** (mes articles et brouillons, profil, mot de
 passe, suppression du compte), **vraie newsletter** et page **Confidentialité**,
 couverture générée pour les articles sans image (dégradé propre à chaque
 article), article **à la une**, temps de lecture, bouton pour **afficher le mot
 de passe**, fond avec halo et grain, pied de page toujours en bas, titre
 d'onglet propre à chaque page.
+
+**Écarts assumés à la maquette** :
+
+- **Photos de l'accueil** : les illustrations de la maquette (une fausse
+  interface et des carrés abstraits) ne parlaient pas du contenu. Elles sont
+  remplacées par trois photos en rapport avec chaque section (code, apprentissage
+  en groupe, statistiques web). Source : [Unsplash](https://unsplash.com/license),
+  licence libre, usage commercial autorisé, sans attribution obligatoire
+  (photos `1555066931-4365d14bab8c`, `1522071820081-009f0129c71c`,
+  `1551288049-bebda4e38f71`). Elles sont servies par le site, en WebP (moins de
+  100 Ko chacune).
+- **Derniers articles sur l'accueil** : les trois derniers articles publiés,
+  pour montrer le vrai contenu du blog dès l'arrivée.
+- **Retours après une action** : bandeau « Article publié », « Article
+  supprimé », « Vous êtes déconnecté », et fenêtre de confirmation avant de se
+  déconnecter, de supprimer un article ou de quitter un formulaire modifié.
+- **Réveil du serveur** : l'API gratuite s'endort après 15 min sans visite. Le
+  site la réveille dès l'arrivée sur l'accueil, et prévient si une attente
+  dépasse 3 s (« Le serveur se réveille... »).
+- **Violet des boutons un peu plus foncé** (`#9333ea` au lieu de `#a855f7`) :
+  avec le violet de la maquette, le texte blanc n'atteignait pas le contraste
+  minimal WCAG AA (3,9:1 pour 4,5:1 demandés). Même chose pour les gris et le
+  lien du pied de page, sur fond blanc.
+
+**Audit Lighthouse** (accueil, mobile) : accessibilité 95 → **100**, SEO 92 →
+**100**, bonnes pratiques 100, performance 98. Corrections : contrastes ci-dessus,
+vrai `robots.txt` et `sitemap.xml` (avant, le site renvoyait la page HTML à leur
+place), et balises **Open Graph** avec une image d'aperçu : un lien Weeb partagé
+sur LinkedIn ou Discord affiche titre, description et visuel.
 
 ## Authentification et sécurité
 
@@ -209,7 +238,7 @@ l'utilisateur a quitté la page entre-temps. Les erreurs Django
 |---|---|---|
 | Unitaire (back) | Django, `test_unit.py` | 79 |
 | Intégration (back) | Django + client HTTP, `test_integration.py` | 99 |
-| Front | Vitest + Testing Library | 49 |
+| Front | Vitest + Testing Library | 60 |
 | Bout en bout | Playwright (Chromium) | 12 parcours |
 
 ```bash

@@ -51,9 +51,9 @@ test.describe('Auteur connecté', () => {
     await expect(page).toHaveURL(new RegExp(`/blog/${slug}$`));
     await expect(page.locator('h1')).toHaveText(nouveauTitre);
 
-    // Suppression : on accepte la fenêtre de confirmation du navigateur.
-    page.once('dialog', (dialog) => dialog.accept());
+    // Suppression : on valide dans la fenêtre de confirmation.
     await page.getByRole('button', { name: 'Supprimer' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Supprimer' }).click();
 
     await expect(page).toHaveURL(/\/blog$/);
     await expect(page.locator('article.article-card').first()).toBeVisible();

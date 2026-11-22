@@ -423,3 +423,67 @@ button:focus-visible,
 .form-legal a {
   color: var(--violet);
 }
+
+/* --- Message de confirmation après une action (FlashMessage.jsx) ---
+   Fixé en bas de l'écran, au-dessus du contenu, sans décaler la page. */
+
+.flash-region {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 1100;
+  width: min(480px, calc(100% - 32px));
+}
+
+.flash-message {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0;
+  padding: 14px 18px;
+  border: 1px solid var(--violet-bord);
+  border-left: 4px solid var(--violet);
+  border-radius: var(--rayon-l);
+  background-color: #12102a;
+  color: var(--blanc);
+  box-shadow: var(--ombre), var(--ombre-violette);
+  animation: flash-in var(--duree) ease;
+}
+
+.flash-close {
+  border: none;
+  background: none;
+  color: var(--texte-doux);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.flash-close:hover {
+  color: var(--blanc);
+}
+
+@keyframes flash-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flash-message {
+    animation: none;
+  }
+}
+
+/* --- Serveur en cours de réveil (SlowServerNotice.jsx) --- */
+
+.slow-server-notice {
+  margin: 12px auto 0;
+  max-width: 420px;
+  color: var(--violet-clair);
+  font-size: 0.9rem;
+  text-align: center;
+}
