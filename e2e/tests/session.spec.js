@@ -6,6 +6,8 @@ import { test } from './session.js';
 test.describe('Session', () => {
   test('survit au rechargement, sans token lisible par le JavaScript', async ({ page }) => {
     await page.goto('/mon-espace');
+    // Point de départ : connecté. On ne recharge qu'une fois la session restaurée.
+    await expect(page.locator('.navbar-container .nav-user')).toHaveText(AUTEUR.prenom);
     await page.reload();
 
     await expect(page.locator('.navbar-container .nav-user')).toHaveText(AUTEUR.prenom);
