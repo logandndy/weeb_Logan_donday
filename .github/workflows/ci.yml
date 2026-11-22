@@ -227,5 +227,11 @@ jobs:
         run: |
           curl -fsS -o /dev/null https://weeb-logan-donday.vercel.app/
           # Le relais doit renvoyer la réponse JSON de l'API, pas la page
-          # d'accueil (qui répond 200 elle aussi).
-          curl -fsS https://weeb-logan-donday.vercel.app/api/ping/ | jq -e '.status == "ok"'
+          # d'accueil (qui répond 200 elle aussi). La nouvelle version de
+          # Vercel met quelques secondes à devenir active : on réessaie 2 min.
+          for i in $(seq 1 12); do
+            if curl -fsS https://weeb-logan-donday.vercel.app/api/ping/ | jq -e '.status == "ok"'; then exit 0; fi
+            sleep 10
+          done
+          echo "Le site ne relaie pas /api vers l'API après 2 min"
+          exit 1
