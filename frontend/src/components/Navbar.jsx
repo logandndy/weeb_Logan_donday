@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import useAuth from '../hooks/useAuth';
+import ConfirmDialog from './ConfirmDialog';
 import '../styles/Navbar.css';
 
 // NavLink ajoute la classe "active" au lien de la page en cours.
@@ -16,10 +17,13 @@ const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
+  const [isLogoutOpen, setIsLogoutOpen] = useState(false);
+
   const closeMenu = () => setIsMenuOpen(false);
 
-  /** Déconnecte l'utilisateur et le ramène à l'accueil. */
+  /** Déconnecte l'utilisateur (après confirmation) et le ramène à l'accueil. */
   function handleLogout() {
+    setIsLogoutOpen(false);
     logout();
     closeMenu();
     navigate('/');
@@ -53,7 +57,7 @@ const Navbar = () => {
                 <NavLink to="/mon-espace" className="nav-user" title="Mon espace">
                   {user.first_name}
                 </NavLink>
-                <button type="button" className="btn btn-primary join-btn" onClick={handleLogout}>
+                <button type="button" className="btn btn-primary join-btn" onClick={() => setIsLogoutOpen(true)}>
                   Déconnexion
                 </button>
               </>
@@ -97,7 +101,7 @@ const Navbar = () => {
                 <Link to="/blog/nouveau" onClick={closeMenu}>
                   Écrire un article
                 </Link>
-                <button type="button" className="btn btn-primary btn-block" onClick={handleLogout}>
+                <button type="button" className="btn btn-primary btn-block" onClick={() => setIsLogoutOpen(true)}>
                   Déconnexion
                 </button>
               </>
@@ -114,6 +118,15 @@ const Navbar = () => {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={isLogoutOpen}
+        title="Se déconnecter ?"
+        message="Vous devrez saisir à nouveau votre email et votre mot de passe pour revenir."
+        confirmLabel="Se déconnecter"
+        onConfirm={handleLogout}
+        onCancel={() => setIsLogoutOpen(false)}
+      />
     </nav>
   );
 };

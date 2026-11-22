@@ -1,0 +1,63 @@
+/* Fenêtre de confirmation (ConfirmDialog.jsx). */
+
+.confirm-dialog {
+  /* Le padding est porté par la boîte intérieure : un clic sur la balise
+     <dialog> elle-même correspond donc toujours au fond. */
+  padding: 0;
+  border: 1px solid var(--violet-bord);
+  border-radius: var(--rayon-xl);
+  background-color: var(--fond);
+  color: var(--blanc);
+  box-shadow: var(--ombre-violette);
+  width: min(420px, calc(100% - 32px));
+}
+
+.confirm-dialog::backdrop {
+  background-color: rgba(5, 6, 20, 0.75);
+  backdrop-filter: blur(4px);
+}
+
+.confirm-dialog[open] {
+  animation: confirm-dialog-in var(--duree) ease;
+}
+
+.confirm-dialog__box {
+  padding: 28px;
+}
+
+.confirm-dialog__title {
+  margin: 0 0 8px;
+  font-size: 1.25rem;
+}
+
+.confirm-dialog__message {
+  margin: 0;
+  color: var(--texte-clair);
+  line-height: 1.5;
+}
+
+.confirm-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+@media (max-width: 400px) {
+  .confirm-dialog__actions {
+    flex-direction: column-reverse;
+  }
+}
+
+@keyframes confirm-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confirm-dialog[open] {
+    animation: none;
+  }
+}

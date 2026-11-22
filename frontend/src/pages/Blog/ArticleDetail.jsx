@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { articlesApi } from '../../services/api';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import useAuth from '../../hooks/useAuth';
 import useFetch from '../../hooks/useFetch';
 import usePageTitle from '../../hooks/usePageTitle';
@@ -16,13 +17,11 @@ const ArticleDetail = () => {
   usePageTitle(article?.title ?? 'Article');
   const [deleteError, setDeleteError] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
-  /** Supprime l'article après confirmation, puis renvoie vers la liste. */
+  /** Supprime l'article (après confirmation), puis renvoie vers la liste. */
   async function handleDelete() {
-    if (!window.confirm('Supprimer définitivement cet article ?')) {
-      return;
-    }
-
+    setIsConfirmOpen(false);
     setIsDeleting(true);
     try {
       await articlesApi.remove(slug);
@@ -94,11 +93,22 @@ const ArticleDetail = () => {
           <Link to={`/blog/${article.slug}/modifier`} className="btn btn-primary">
             Modifier
           </Link>
-          <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={isDeleting}>
+          <button type="button" className="btn btn-danger" onClick={() => setIsConfirmOpen(true)}
+            disabled={isDeleting}>
             {isDeleting ? 'Suppression...' : 'Supprimer'}
           </button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={isConfirmOpen}
+        title="Supprimer cet article ?"
+        message="Cette action est définitive : l'article ne pourra pas être récupéré."
+        confirmLabel="Supprimer"
+        danger
+        onConfirm={handleDelete}
+        onCancel={() => setIsConfirmOpen(false)}
+      />
     </article>
   );
 };

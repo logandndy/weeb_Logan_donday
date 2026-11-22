@@ -133,7 +133,7 @@ focus violet et label flottant sur les champs ; contour clavier
 (`:focus-visible`) ; transitions de 0,3 s ; apparition au défilement.
 
 **Hors maquette** : bande défilante des partenaires, menu burger animé,
-inscription, mot de passe oublié, pagination, brouillons, page 404, page active
+inscription, mot de passe oublié, confirmation avant déconnexion et suppression, pagination, brouillons, page 404, page active
 dans la navbar, page **Mon espace** (mes articles et brouillons, profil, mot de
 passe, suppression du compte), **vraie newsletter** et page **Confidentialité**,
 couverture générée pour les articles sans image (dégradé propre à chaque
@@ -209,7 +209,7 @@ l'utilisateur a quitté la page entre-temps. Les erreurs Django
 |---|---|---|
 | Unitaire (back) | Django, `test_unit.py` | 79 |
 | Intégration (back) | Django + client HTTP, `test_integration.py` | 99 |
-| Front | Vitest + Testing Library | 49 |
+| Front | Vitest + Testing Library | 51 |
 | Bout en bout | Playwright (Chromium) | 12 parcours |
 
 ```bash

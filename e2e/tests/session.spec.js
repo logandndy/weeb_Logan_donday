@@ -19,6 +19,7 @@ test.describe('Session', () => {
   test('la déconnexion ferme vraiment la session côté serveur', async ({ page }) => {
     await page.goto('/blog');
     await page.locator('.navbar-container').getByRole('button', { name: 'Déconnexion' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Se déconnecter' }).click();
     await expect(page.locator('.navbar-container .nav-user')).toHaveCount(0);
 
     const refresh = await page.request.post('/api/auth/refresh/');
