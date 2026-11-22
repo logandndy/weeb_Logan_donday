@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
 import useForm from '../../hooks/useForm';
+import SlowServerNotice from '../../components/SlowServerNotice';
 import FormField from '../../components/FormField';
 import FormMessage from '../../components/FormMessage';
 import usePageTitle from '../../hooks/usePageTitle';
@@ -52,6 +53,7 @@ const Login = () => {
           <button type="submit" className="btn btn-primary btn-block" disabled={isSubmitting}>
             {isSubmitting ? 'Connexion...' : 'Se connecter'}
           </button>
+          <SlowServerNotice active={isSubmitting} />
         </form>
 
         <div className="login-links">

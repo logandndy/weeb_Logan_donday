@@ -7,11 +7,14 @@
   --fond-carte: #c084fc1a;
   --violet: #a855f7;
   --violet-fonce: #9333ea;
+  --violet-profond: #7e22ce;
   --violet-clair: #c084fc;
   --violet-bord: rgba(168, 85, 247, 0.3);
   --violet-halo: rgba(168, 85, 247, 0.25);
   --blanc: #ffffff;
   --texte-doux: #9ca3af;
+  /* Gris lisible sur fond blanc (pied de page) : contraste de 4,8:1. */
+  --texte-doux-sur-blanc: #6b7280;
   --texte-clair: #d1d5db;
   --gris-bord: #4b5563;
   --rouge: #f87171;
@@ -74,12 +77,14 @@
 }
 
 .btn-primary {
-  background-color: var(--violet);
+  /* Violet un peu plus foncé que celui de la maquette : le texte blanc
+     atteint ainsi le contraste minimal du RGAA / WCAG AA (5,4:1 au lieu de 3,9:1). */
+  background-color: var(--violet-fonce);
   color: var(--blanc);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: var(--violet-fonce);
+  background-color: var(--violet-profond);
   box-shadow: var(--ombre-violette);
 }
 

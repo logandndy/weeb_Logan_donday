@@ -1,0 +1,8 @@
+# Tout le site public peut être indexé. Les pages personnelles et l'API non.
+User-agent: *
+Disallow: /api/
+Disallow: /mon-espace
+Disallow: /blog/nouveau
+Disallow: /reset-password
+
+Sitemap: https://weeb-logan-donday.vercel.app/sitemap.xml

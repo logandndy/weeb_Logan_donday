@@ -29,7 +29,7 @@
 
 .footer-column h3 {
   font-size: 0.85rem;
-  color: var(--texte-doux);
+  color: var(--texte-doux-sur-blanc);
   text-transform: uppercase;
   margin-bottom: 20px;
   letter-spacing: 1px;
@@ -44,7 +44,7 @@
 }
 
 .footer-column a:hover {
-  color: var(--violet);
+  color: var(--violet-fonce);
 }
 
 .footer-bottom {
@@ -94,7 +94,7 @@
 }
 
 .newsletter-form button {
-  background-color: var(--violet);
+  background-color: var(--violet-fonce);
   color: var(--blanc);
   border: none;
   padding: 0 16px;
@@ -108,7 +108,7 @@
 }
 
 .newsletter-form button:hover {
-  background-color: var(--violet-fonce);
+  background-color: var(--violet-profond);
 }
 
 .newsletter-success {
@@ -165,7 +165,12 @@
   color: var(--violet);
 }
 
-/* Le lien sous le formulaire newsletter garde le violet de la marque. */
+/* Sur le fond blanc du pied de page, textes et liens prennent des teintes
+   plus foncées pour rester lisibles (contraste WCAG AA). */
+.newsletter-col .form-legal {
+  color: var(--texte-doux-sur-blanc);
+}
+
 .newsletter-col .form-legal a {
-  color: var(--violet);
+  color: var(--violet-fonce);
 }

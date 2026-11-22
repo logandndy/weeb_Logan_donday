@@ -7,6 +7,7 @@ import useForm from '../../hooks/useForm';
 import FormField from '../../components/FormField';
 import FormMessage from '../../components/FormMessage';
 import Pagination from '../../components/Pagination';
+import LoadingStatus from '../../components/LoadingStatus';
 import ArticleCard from '../Blog/ArticleCard';
 import { formatDate } from '../../utils/format';
 import '../../styles/Blog.css';
@@ -62,7 +63,7 @@ function MesArticles() {
         </Link>
       </div>
 
-      {isLoading && <p className="blog-status">Chargement de vos articles...</p>}
+      {isLoading && <LoadingStatus>Chargement de vos articles...</LoadingStatus>}
       {error && <p className="blog-status blog-status--error" role="alert">{error.message}</p>}
       {!isLoading && !error && articles.length === 0 && (
         <p className="blog-status">Vous n&apos;avez encore rien écrit. Lancez-vous !</p>
