@@ -141,6 +141,25 @@ article), article **à la une**, temps de lecture, bouton pour **afficher le mot
 de passe**, fond avec halo et grain, pied de page toujours en bas, titre
 d'onglet propre à chaque page.
 
+**Écarts assumés à la maquette** :
+
+- **Photos de l'accueil** : les illustrations de la maquette (une fausse
+  interface et des carrés abstraits) ne parlaient pas du contenu. Elles sont
+  remplacées par trois photos en rapport avec chaque section (code, apprentissage
+  en groupe, statistiques web). Source : [Unsplash](https://unsplash.com/license),
+  licence libre, usage commercial autorisé, sans attribution obligatoire
+  (photos `1555066931-4365d14bab8c`, `1522071820081-009f0129c71c`,
+  `1551288049-bebda4e38f71`). Elles sont servies par le site, en WebP (moins de
+  100 Ko chacune).
+- **Derniers articles sur l'accueil** : les trois derniers articles publiés,
+  pour montrer le vrai contenu du blog dès l'arrivée.
+- **Retours après une action** : bandeau « Article publié », « Article
+  supprimé », « Vous êtes déconnecté », et fenêtre de confirmation avant de se
+  déconnecter, de supprimer un article ou de quitter un formulaire modifié.
+- **Réveil du serveur** : l'API gratuite s'endort après 15 min sans visite. Le
+  site la réveille dès l'arrivée sur l'accueil, et prévient si une attente
+  dépasse 3 s (« Le serveur se réveille... »).
+
 ## Authentification et sécurité
 
 1. **Inscription** : compte créé **inactif**, mot de passe vérifié par les validateurs Django puis haché. Les admins reçoivent un email. Si l'adresse a déjà un compte, la réponse est **exactement la même** (rien n'est créé, le titulaire est prévenu par email) : impossible de tester des adresses pour savoir qui est inscrit.
@@ -209,7 +228,7 @@ l'utilisateur a quitté la page entre-temps. Les erreurs Django
 |---|---|---|
 | Unitaire (back) | Django, `test_unit.py` | 79 |
 | Intégration (back) | Django + client HTTP, `test_integration.py` | 99 |
-| Front | Vitest + Testing Library | 51 |
+| Front | Vitest + Testing Library | 60 |
 | Bout en bout | Playwright (Chromium) | 12 parcours |
 
 ```bash

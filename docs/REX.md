@@ -88,7 +88,7 @@ flowchart LR
 | Job | Ce qu'il garantit |
 |---|---|
 | `backend` | Config valide, sécurité de prod sans avertissement, aucune migration oubliée, 178 tests verts sur un vrai PostgreSQL |
-| `frontend` | Code propre (lint), 51 tests verts, application qui compile |
+| `frontend` | Code propre (lint), 60 tests verts, application qui compile |
 | `docker` | L'image se construit **et démarre** |
 | `e2e` | Les parcours utilisateur marchent, front + API réunis |
 | `deploy` | La nouvelle version est réellement en ligne |
@@ -206,7 +206,7 @@ tests lents mais réalistes.
 |---|---|---|---|
 | Unitaire | Django (`test_unit.py`) | Cette brique seule fonctionne-t-elle ? (modèle, validation, permission, email) | 79 |
 | Intégration | Django + client HTTP (`test_integration.py`) | Vue, base, JWT et limites fonctionnent-ils ensemble ? | 99 |
-| Front | Vitest + Testing Library | `api.js`, session et écrans réagissent-ils bien ? | 51 |
+| Front | Vitest + Testing Library | `api.js`, session et écrans réagissent-ils bien ? | 60 |
 | Bout en bout | Playwright (Chromium) | Un utilisateur arrive-t-il au bout de son parcours ? | 12 parcours |
 
 **Ce que j'ai testé en priorité** : ce qui coûterait cher si ça cassait.
@@ -313,7 +313,7 @@ offres gratuites se vérifie dans leurs tableaux de bord, pas seulement en théo
 
 | Angle | Indicateur | Valeur | Pourquoi |
 |---|---|---|---|
-| Avant livraison | Tests back / front / E2E | 178 / 51 / 12 parcours, tous verts | Filet contre les régressions |
+| Avant livraison | Tests back / front / E2E | 178 / 60 / 12 parcours, tous verts | Filet contre les régressions |
 | | Couverture back | 95 % (hors tests et migrations) | Code jamais exécuté = code jamais vérifié |
 | | Couverture front | ~78 % (services, composants, session) | Les pages sont surtout couvertes par l'E2E |
 | | Lint front | 0 erreur | Code homogène |

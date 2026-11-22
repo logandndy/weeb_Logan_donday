@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { articlesApi } from '../../services/api';
 import useAuth from '../../hooks/useAuth';
 import useFetch from '../../hooks/useFetch';
+import LoadingStatus from '../../components/LoadingStatus';
 import Pagination from '../../components/Pagination';
 import ArticleCard from './ArticleCard';
 import '../../styles/Blog.css';
@@ -36,7 +37,7 @@ const Blog = () => {
         )}
       </header>
 
-      {isLoading && <p className="blog-status">Chargement des articles...</p>}
+      {isLoading && <LoadingStatus>Chargement des articles...</LoadingStatus>}
 
       {error && (
         <p className="blog-status blog-status--error" role="alert">

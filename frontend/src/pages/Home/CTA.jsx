@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import useScrollReveal from '../../hooks/useScrollReveal';
-import svgImg from '../../assets/img-2.png';
+import trendsImg from '../../assets/tendances-analytics.webp';
 import '../../styles/Home.css';
 
 const Cta = () => {
@@ -11,7 +11,8 @@ const Cta = () => {
       <div className="cta-container">
         <div className="cta-graphic">
           <div className="graphic-placeholder">
-            <img src={svgImg} alt="Illustration des tendances du web" />
+            <img src={trendsImg} alt="Tableau de bord de statistiques de performance web"
+              width="900" height="600" loading="lazy" />
           </div>
         </div>
         <div className="cta-text">

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import useScrollReveal from '../../hooks/useScrollReveal';
-import dashboardImg from '../../assets/img-1.png';
+import learnImg from '../../assets/apprendre-ensemble.webp';
 import '../../styles/Home.css';
 
 const Features = () => {
@@ -26,7 +26,8 @@ const Features = () => {
         </div>
         <div className="features-image">
           <div className="mockup-placeholder">
-            <img src={dashboardImg} alt="Tableau de bord des ressources" />
+            <img src={learnImg} alt="Développeurs qui apprennent ensemble autour de leurs ordinateurs"
+              width="900" height="600" loading="lazy" />
           </div>
         </div>
       </div>

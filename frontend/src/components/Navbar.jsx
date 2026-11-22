@@ -26,7 +26,7 @@ const Navbar = () => {
     setIsLogoutOpen(false);
     logout();
     closeMenu();
-    navigate('/');
+    navigate('/', { state: { flash: 'Vous êtes déconnecté. À bientôt !' } });
   }
 
   return (

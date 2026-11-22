@@ -11,6 +11,11 @@ import { initMonitoring } from './monitoring'
 
 initMonitoring()
 
+// L'API dort quand personne ne s'en sert (hébergement gratuit). On la réveille
+// dès l'arrivée sur le site : elle a ainsi le temps de démarrer pendant que le
+// visiteur lit l'accueil, avant qu'il ouvre le blog ou se connecte.
+fetch('/api/ping/').catch(() => {})
+
 // Si un composant plante, Sentry remonte l'erreur et l'utilisateur voit un
 // message au lieu d'une page blanche.
 const fallback = (

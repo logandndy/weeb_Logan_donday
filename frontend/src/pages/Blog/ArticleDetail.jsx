@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { articlesApi } from '../../services/api';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import LoadingStatus from '../../components/LoadingStatus';
 import useAuth from '../../hooks/useAuth';
 import useFetch from '../../hooks/useFetch';
 import usePageTitle from '../../hooks/usePageTitle';
@@ -25,7 +26,7 @@ const ArticleDetail = () => {
     setIsDeleting(true);
     try {
       await articlesApi.remove(slug);
-      navigate('/blog');
+      navigate('/blog', { state: { flash: 'Article supprimé.' } });
     } catch (apiError) {
       setDeleteError(apiError.message);
       setIsDeleting(false);
@@ -33,7 +34,7 @@ const ArticleDetail = () => {
   }
 
   if (isLoading) {
-    return <p className="blog-status">Chargement de l&apos;article...</p>;
+    return <LoadingStatus>Chargement de l&apos;article...</LoadingStatus>;
   }
 
   if (loadError) {
